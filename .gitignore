@@ -1,0 +1,11 @@
+# Conversion output + working copies (created at runtime in the CWD)
+output/
+*.tmp.md
+
+# Python bytecode from the .fcc/docx helpers
+__pycache__/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+*.swo
