@@ -82,11 +82,12 @@ TITLE_IMG_CACHE=""
 # Title page state (set by select_title_page)
 USE_TITLE_PAGE=false
 
-# Title-page letterhead chrome (resolved by resolve_title_page_chrome when a
-# title page is active). Default = show everything, i.e. current behaviour.
-TP_HEADER=true
-TP_FOOTER=true
-TP_PAGENUM=true
+# Title-page letterhead chrome. Empty = "not set by a flag"; resolved from the
+# config file (title_page_*), defaulting to show, in resolve_letterhead. A
+# --tp-*/--no-tp-* flag sets it explicitly and wins over config.
+TP_HEADER=""
+TP_FOOTER=""
+TP_PAGENUM=""
 
 # Set by apply_title_page (per file) when it emits the TOC itself, after the
 # title page. The converters then skip pandoc's --toc so it isn't ALSO placed
@@ -813,7 +814,27 @@ resolve_letterhead() {
         DOCX_LOGO=""
     fi
 
+    # Title-page chrome: an explicit --tp-*/--no-tp-* flag wins; otherwise the
+    # config key (title_page_*); otherwise show. Page number is nested under the
+    # footer, so no footer => no page number.
+    _tp_resolve TP_HEADER  title_page_header
+    _tp_resolve TP_FOOTER  title_page_footer
+    _tp_resolve TP_PAGENUM title_page_page_number
+    [[ "$TP_FOOTER" == false ]] && TP_PAGENUM=false
+
     enote "Letterhead — author='${DOCX_AUTHOR}' classification='${DOCX_CLASSIFICATION}' version='${DOCX_VERSION}' logo='${DOCX_LOGO:-none}'"
+    enote "Title-page chrome — header=${TP_HEADER} footer=${TP_FOOTER} page#=${TP_PAGENUM}"
+}
+
+# Resolve a title-page chrome toggle: keep an explicit flag value, else read the
+# config key, else default to "true" (show). $1 = var name, $2 = config key.
+_tp_resolve() {
+    [[ -n "${!1}" ]] && return   # a --tp-*/--no-tp-* flag already set it
+    local v; v="$(docx_cfg "$2")"
+    case "$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]')" in
+        false|no|0|off|hide) printf -v "$1" false ;;
+        *)                   printf -v "$1" true ;;   # true/yes/…/unset → show
+    esac
 }
 
 # Read a boolean-ish config key from .fcc/docx/config → prints "true"/"false".
@@ -1772,9 +1793,6 @@ main_engine() {
         [[ "$_ENGINE_FONT" == none ]] && _ENGINE_FONT=""
         if [[ "$OUTPUT_FORMAT" == pdf ]]; then PDF_FONT="$_ENGINE_FONT"; else DOCX_FONT="$_ENGINE_FONT"; fi
     fi
-    # Title-page chrome nesting: no footer => no page number.
-    [[ "$TP_FOOTER" == false ]] && TP_PAGENUM=false
-
     guard_deps
 
     case "${SOURCE_FORMAT}->${OUTPUT_FORMAT}" in
