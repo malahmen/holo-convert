@@ -40,8 +40,8 @@ Multiple files each convert independently, unless `--concat` merges them.
 
 ## Parameters
 
-Legend for **Formats**: which conversions a flag affects — `md→pdf`, `md→docx`, \
-`docx→md`. A flag listed for a format it doesn't apply to is simply ignored.
+Legend for **Formats**: which conversions a flag affects — `md→pdf`, `md→docx`, `docx→md`. \
+A flag listed for a format it doesn't apply to is simply ignored.
 
 ### General
 
