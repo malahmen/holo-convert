@@ -7,12 +7,14 @@
 # drives this engine with flags.
 #
 #   holo-convert.sh --from md --to docx [options] <file>...
-#   holo-convert.sh --setup [--to pdf|docx]      # install dependencies
+#   holo-convert.sh --setup [--to pdf|docx]      # install core dependencies
+#   holo-convert.sh --with-optional              # + the optional tools
 #   holo-convert.sh --help
 #
 # Dependencies (checked, not installed — see --help / README, or run --setup):
 #   always: bash 4+, pandoc      PDF: a LaTeX engine (xelatex)      DOCX: python3
-#   optional: rsvg-convert (SVG), sips/ImageMagick (GIF), fontconfig (fonts)
+#   optional (--with-optional): rsvg-convert (SVG), ImageMagick (GIF),
+#     fontconfig (fonts), mermaid-cli (diagrams); sips is built in on macOS
 # Config: .fcc/pdf/header.tex, .fcc/title-pages/*.{yaml,md} (auto-seeded).
 # -----------------------------------------------------------------------------
 
@@ -35,6 +37,7 @@ OUTPUT_DIR="./output"
 DEFAULT_DEPTH=3
 
 SETUP_DEPS=false          # --setup: install dependencies (explicit, opt-in)
+WITH_OPTIONAL=false       # --with-optional: also install the optional tools
 MD_VARIANT="gfm"          # docx→md output variant (overridable via --md-variant)
 _ENGINE_FONT=""           # deferred --font value (applied once --to is known)
 _ENGINE_REFERENCE=""      # deferred --reference value (docx)
@@ -1582,8 +1585,12 @@ DOCX->MD
 SETUP
   --setup                            install dependencies, then exit (or, if a
                                      conversion is also given, install then run)
-    holo-convert.sh --setup                install everything (pandoc, LaTeX, python3)
+  --with-optional                    also install the optional tools (rsvg,
+                                     ImageMagick, fontconfig, mermaid-cli);
+                                     implies --setup
+    holo-convert.sh --setup                install the core (pandoc, LaTeX, python3)
     holo-convert.sh --setup --to docx       install just the DOCX deps
+    holo-convert.sh --with-optional         install the core + all optional tools
     holo-convert.sh --setup --from md --to pdf doc.md   install PDF deps, then convert
 
 By default (no --setup) engine dependencies are CHECKED but never installed.
@@ -1609,9 +1616,24 @@ _engine_install_pkg() {
     command -v "$bin" &>/dev/null && enote "${bin}: ready." || warn "${bin}: install may have failed — check the output above."
 }
 
+# mermaid CLI (mmdc) is installed via npm (pulls in a headless browser), so it's
+# only attempted under --with-optional, and only when npm is available.
+_engine_install_mermaid() {
+    command -v mmdc &>/dev/null && { enote "mmdc: already present."; return 0; }
+    if command -v npm &>/dev/null; then
+        enote "installing mermaid-cli (npm -g @mermaid-js/mermaid-cli)…"
+        npm install -g @mermaid-js/mermaid-cli || warn "mermaid-cli install failed."
+        command -v mmdc &>/dev/null && enote "mmdc: ready." \
+            || warn "mmdc still missing after install."
+    else
+        warn "npm not found — skipping mermaid-cli (install Node.js, then: npm i -g @mermaid-js/mermaid-cli)."
+    fi
+}
+
 # --setup: install the engine's dependencies. Scoped to --to when given
 # (pdf → +LaTeX, docx → +python3), otherwise installs the full set. pandoc is
-# always installed; rsvg only when --raster-svg is requested.
+# always installed. Optional tools (rsvg, ImageMagick, fontconfig, mermaid) are
+# installed only with --with-optional (rsvg also when --raster-svg is set).
 setup_deps() {
     enote "Setting up holo-convert dependencies…"
     _engine_install_pkg pandoc pandoc pandoc pandoc
@@ -1629,7 +1651,16 @@ setup_deps() {
         _engine_install_pkg xelatex mactex-no-gui texlive-xetex texlive-xetex cask
     fi
     [[ "$want_docx" == true ]] && _engine_install_pkg python3 python python3 python3
-    [[ "${RASTER_SVG:-false}" == true ]] && _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
+
+    if [[ "$WITH_OPTIONAL" == true ]]; then
+        enote "Installing optional tools (--with-optional)…"
+        _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
+        _engine_install_pkg magick     imagemagick imagemagick ImageMagick
+        _engine_install_pkg fc-list    fontconfig  fontconfig  fontconfig
+        _engine_install_mermaid
+    elif [[ "${RASTER_SVG:-false}" == true ]]; then
+        _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
+    fi
 
     enote "Setup complete."
 }
@@ -1706,6 +1737,7 @@ parse_args() {
             --no-tp-pagenum)       TP_PAGENUM=false; shift ;;
             --md-variant)          MD_VARIANT="$2"; shift 2 ;;
             --setup)               SETUP_DEPS=true; shift ;;
+            --with-optional)       WITH_OPTIONAL=true; SETUP_DEPS=true; shift ;;
             -h|--help)             usage; exit 0 ;;
             --)                    shift; while [[ $# -gt 0 ]]; do files+=("$1"); shift; done ;;
             -*)                    edie "unknown flag: $1 (try --help)" ;;

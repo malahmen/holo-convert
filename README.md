@@ -9,7 +9,8 @@ flags.
 
 ```sh
 holo-convert.sh --from <md|docx> --to <pdf|docx|md> [options] <file>...
-holo-convert.sh --setup [--to pdf|docx]     # install dependencies
+holo-convert.sh --setup [--to pdf|docx]     # install core dependencies
+holo-convert.sh --with-optional             # core + optional tools
 holo-convert.sh --help
 ```
 
@@ -40,10 +41,12 @@ install them, or install manually.
 | Always | `bash` 4+, `pandoc` |
 | → PDF  | a LaTeX engine (`xelatex` recommended; or lualatex/pdflatex/wkhtmltopdf/weasyprint/pagedjs-cli) |
 | → DOCX | `python3` (standard library only) |
-| Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect) |
+| Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), `mermaid-cli` (diagrams) |
 
-`--setup` installs via the OS package manager (Homebrew on macOS, apt/dnf on
-Linux), scoped to `--to` when given.
+`--setup` installs the core via the OS package manager (Homebrew on macOS,
+apt/dnf on Linux), scoped to `--to` when given. `--with-optional` additionally
+installs the optional tools (rsvg-convert, ImageMagick, fontconfig, and — via
+npm — mermaid-cli); it implies `--setup`. Neither is ever run automatically.
 
 ## Assets
 
