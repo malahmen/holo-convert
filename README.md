@@ -214,7 +214,7 @@ Local `.svg` references in the body are embedded only when `--raster-svg` conver
 
 ## Working directory & assets
 
-- On first run in a directory, the canonical `.fcc/` assets are copied to a working `./.fcc/` there, edit those _(config, title-page templates, code theme, filters)_ to customize a specific project. \
+- On first run in a directory, the canonical `.fcc/` assets are copied to a working `./.fcc/` there, edit those _(config, title-page templates, code theme, filters)_ to customize a specific project.
 - Output is written to `./output/` (or `-o DIR`). Both `.fcc/` and `output/` are runtime artifacts, keep them out of version control.
 
 ---
