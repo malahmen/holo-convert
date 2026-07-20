@@ -85,8 +85,66 @@ def logo_paragraph(cx, cy):
     )
 
 
+# Borderless 2-column header table: logo (left) beside the title/author block
+# (right), both vertically centered — the classic letterhead band. A table grows
+# the header to fit and every renderer pushes the body below it (no overlap).
+_TBL_NOBORDER = (
+    '<w:tblBorders>'
+    '<w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/>'
+    '<w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/>'
+    '</w:tblBorders>'
+)
+
+
+def header_table(logo_para, info_inner, logo_col, info_col):
+    """Wrap the logo paragraph + the existing header content (info_inner) into a
+    borderless, fixed-layout 2-column table spanning the text width (so the
+    right column reaches the right margin), followed by a spacer paragraph that
+    keeps the body from crowding the header. Widths are in twips."""
+    total = logo_col + info_col
+    return (
+        '<w:tbl><w:tblPr>'
+        f'<w:tblW w:w="{total}" w:type="dxa"/>'
+        '<w:tblLayout w:type="fixed"/>'
+        + _TBL_NOBORDER +
+        '<w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/>'
+        '<w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar>'
+        '<w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="1" w:noVBand="1"/>'
+        '</w:tblPr>'
+        f'<w:tblGrid><w:gridCol w:w="{logo_col}"/><w:gridCol w:w="{info_col}"/></w:tblGrid>'
+        '<w:tr>'
+        f'<w:tc><w:tcPr><w:tcW w:w="{logo_col}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>'
+        + logo_para +
+        '</w:tc>'
+        f'<w:tc><w:tcPr><w:tcW w:w="{info_col}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>'
+        + info_inner +
+        '</w:tc>'
+        '</w:tr>'
+        '</w:tbl>'
+        # required paragraph after a table; doubles as a header→body spacer.
+        '<w:p><w:pPr><w:spacing w:before="160" w:after="0" w:line="120" w:lineRule="exact"/>'
+        '<w:rPr><w:sz w:val="8"/></w:rPr></w:pPr></w:p>'
+    )
+
+
+def _text_width(data):
+    """Text-column width in twips, from the section's pgSz/pgMar (defaults A4)."""
+    doc = data.get("word/document.xml", b"")
+    doc = doc.decode("utf-8") if doc else ""
+    pw = re.search(r'<w:pgSz\b[^>]*\bw:w="(\d+)"', doc)
+    pgmar = re.search(r"<w:pgMar\b[^>]*/>", doc)
+    width = int(pw.group(1)) if pw else 11906
+    left = right = 1080
+    if pgmar:
+        l = re.search(r'w:left="(\d+)"', pgmar.group(0))
+        r = re.search(r'w:right="(\d+)"', pgmar.group(0))
+        if l: left = int(l.group(1))
+        if r: right = int(r.group(1))
+    return max(width - left - right, 4000)
+
+
 def inject_logo(data, logo_path):
-    """Embed logo_path as an inline image in a new first paragraph of the header."""
+    """Embed logo_path and lay the header out as [logo | title/author] side by side."""
     headers = sorted(n for n in data if HDR_RE.match(n))
     if not headers:
         return False
@@ -115,8 +173,16 @@ def inject_logo(data, logo_path):
             f'<Relationships xmlns="{PR}">{rel}</Relationships>'
         ).encode("utf-8")
 
-    # prepend a dedicated logo paragraph as the header's first block
-    hs = re.sub(r"(<w:hdr\b[^>]*>)", lambda m: m.group(1) + logo_paragraph(cx, cy), hs, count=1)
+    # Lay out the header as a 2-column table: logo (left) beside the existing
+    # title/author content (right), instead of stacking the logo above it.
+    m = re.search(r"(<w:hdr\b[^>]*>)(.*)(</w:hdr>)", hs, re.S)
+    if m:
+        tw = _text_width(data)
+        logo_col = min(int(cx / 635) + 300, int(tw * 0.4))  # logo width (twips) + pad
+        info_col = tw - logo_col
+        hs = m.group(1) + header_table(logo_paragraph(cx, cy), m.group(2), logo_col, info_col) + m.group(3)
+    else:  # unexpected header shape — fall back to prepending the logo
+        hs = re.sub(r"(<w:hdr\b[^>]*>)", lambda mm: mm.group(1) + logo_paragraph(cx, cy), hs, count=1)
     data[hdr] = hs.encode("utf-8")
 
     # png content type
