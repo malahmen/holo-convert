@@ -66,81 +66,55 @@ def png_dims(path):
     return int.from_bytes(b[16:20], "big"), int.from_bytes(b[20:24], "big")
 
 
-def logo_paragraph(cx, cy):
-    # Inline (not floating) image in its own header paragraph: the header grows
-    # to fit it, so every renderer pushes the body below it — no overlap, no
-    # top-margin math (a floating anchor can spill over the body instead).
+def logo_anchor(cx, cy):
+    """A floating image anchored to the top-LEFT of the header's text margin.
+    wrapNone lets the header's right-aligned title/author sit on the same band at
+    the right — so the logo is always far-left and the info far-right, in every
+    renderer (unlike a fixed-width table, which some previewers collapse)."""
     return (
-        '<w:p><w:pPr><w:jc w:val="left"/><w:spacing w:before="0" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr>'
         '<w:r><w:rPr><w:noProof/></w:rPr><w:drawing>'
-        f'<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="{cx}" cy="{cy}"/>'
-        '<wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="1" name="Logo"/>'
+        '<wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" '
+        'relativeHeight="251658240" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1">'
+        '<wp:simplePos x="0" y="0"/>'
+        '<wp:positionH relativeFrom="margin"><wp:align>left</wp:align></wp:positionH>'
+        '<wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV>'
+        f'<wp:extent cx="{cx}" cy="{cy}"/>'
+        '<wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/>'
+        '<wp:docPr id="1" name="Logo"/>'
         '<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>'
         '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
         f'<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="logo.png"/><pic:cNvPicPr/></pic:nvPicPr>'
         f'<pic:blipFill><a:blip r:embed="{LOGO_RID}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
         f'<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
         '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>'
-        '</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>'
+        '</a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>'
     )
 
 
-# Borderless 2-column header table: logo (left) beside the title/author block
-# (right), both vertically centered — the classic letterhead band. A table grows
-# the header to fit and every renderer pushes the body below it (no overlap).
-_TBL_NOBORDER = (
-    '<w:tblBorders>'
-    '<w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/>'
-    '<w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/>'
-    '</w:tblBorders>'
-)
+def _raise_top_margin(data, logo_cy_emu):
+    """Grow the section's top margin so the floating logo clears the body:
+    header offset + logo height + a small gap. Never shrinks it."""
+    key = "word/document.xml"
+    if key not in data:
+        return
+    doc = data[key].decode("utf-8")
+    m = re.search(r"<w:pgMar\b[^>]*/>", doc)
+    if not m:
+        return
+    tag = m.group(0)
 
+    def attr(name, default):
+        mm = re.search(rf'w:{name}="(\d+)"', tag)
+        return int(mm.group(1)) if mm else default
 
-def header_table(logo_para, info_inner, logo_col, info_col):
-    """Wrap the logo paragraph + the existing header content (info_inner) into a
-    borderless, fixed-layout 2-column table spanning the text width (so the
-    right column reaches the right margin), followed by a spacer paragraph that
-    keeps the body from crowding the header. Widths are in twips."""
-    total = logo_col + info_col
-    return (
-        '<w:tbl><w:tblPr>'
-        f'<w:tblW w:w="{total}" w:type="dxa"/>'
-        '<w:tblLayout w:type="fixed"/>'
-        + _TBL_NOBORDER +
-        '<w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="0" w:type="dxa"/>'
-        '<w:bottom w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar>'
-        '<w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="1" w:noVBand="1"/>'
-        '</w:tblPr>'
-        f'<w:tblGrid><w:gridCol w:w="{logo_col}"/><w:gridCol w:w="{info_col}"/></w:tblGrid>'
-        '<w:tr>'
-        f'<w:tc><w:tcPr><w:tcW w:w="{logo_col}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>'
-        + logo_para +
-        '</w:tc>'
-        f'<w:tc><w:tcPr><w:tcW w:w="{info_col}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>'
-        + info_inner +
-        '</w:tc>'
-        '</w:tr>'
-        '</w:tbl>'
-        # required paragraph after a table; doubles as a header→body spacer.
-        '<w:p><w:pPr><w:spacing w:before="160" w:after="0" w:line="120" w:lineRule="exact"/>'
-        '<w:rPr><w:sz w:val="8"/></w:rPr></w:pPr></w:p>'
-    )
-
-
-def _text_width(data):
-    """Text-column width in twips, from the section's pgSz/pgMar (defaults A4)."""
-    doc = data.get("word/document.xml", b"")
-    doc = doc.decode("utf-8") if doc else ""
-    pw = re.search(r'<w:pgSz\b[^>]*\bw:w="(\d+)"', doc)
-    pgmar = re.search(r"<w:pgMar\b[^>]*/>", doc)
-    width = int(pw.group(1)) if pw else 11906
-    left = right = 1080
-    if pgmar:
-        l = re.search(r'w:left="(\d+)"', pgmar.group(0))
-        r = re.search(r'w:right="(\d+)"', pgmar.group(0))
-        if l: left = int(l.group(1))
-        if r: right = int(r.group(1))
-    return max(width - left - right, 4000)
+    top = attr("top", 1440)
+    header = attr("header", 720)
+    needed = header + int(logo_cy_emu / 635) + 240   # + ~0.17in breathing room
+    if top >= needed:
+        return
+    data[key] = doc.replace(
+        tag, re.sub(r'w:top="\d+"', f'w:top="{needed}"', tag, count=1), 1
+    ).encode("utf-8")
 
 
 def inject_logo(data, logo_path):
@@ -175,15 +149,16 @@ def inject_logo(data, logo_path):
 
     # Lay out the header as a 2-column table: logo (left) beside the existing
     # title/author content (right), instead of stacking the logo above it.
-    m = re.search(r"(<w:hdr\b[^>]*>)(.*)(</w:hdr>)", hs, re.S)
-    if m:
-        tw = _text_width(data)
-        logo_col = min(int(cx / 635) + 300, int(tw * 0.4))  # logo width (twips) + pad
-        info_col = tw - logo_col
-        hs = m.group(1) + header_table(logo_paragraph(cx, cy), m.group(2), logo_col, info_col) + m.group(3)
-    else:  # unexpected header shape — fall back to prepending the logo
-        hs = re.sub(r"(<w:hdr\b[^>]*>)", lambda mm: mm.group(1) + logo_paragraph(cx, cy), hs, count=1)
+    # Float the logo at the header's top-left; the title/author paragraphs keep
+    # their right alignment, giving a logo-left / info-right band.
+    if "</w:pPr>" in hs:
+        hs = re.sub(r"</w:pPr>", lambda mm: "</w:pPr>" + logo_anchor(cx, cy), hs, count=1)
+    else:  # header's first paragraph has no pPr — inject a run right after <w:p>
+        hs = re.sub(r"(<w:hdr\b[^>]*>\s*<w:p>)", lambda mm: mm.group(1) + logo_anchor(cx, cy), hs, count=1)
     data[hdr] = hs.encode("utf-8")
+
+    # Raise the top margin so the floating logo can't overlap the body.
+    _raise_top_margin(data, cy)
 
     # png content type
     ct = data["[Content_Types].xml"].decode("utf-8")
