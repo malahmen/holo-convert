@@ -443,10 +443,12 @@ stamp_docx_letterhead() {
         tp_args=(--tp-header "$_sh" --tp-footer "$_sf" --tp-pagenum "$_sp")
     fi
 
+    # ${arr[@]+"${arr[@]}"}: an EMPTY array expanded as "${arr[@]}" is an
+    # "unbound variable" under set -u on bash < 4.4 (macOS ships 3.2).
     python3 "$script" "$docx" \
         --title "$title" --version-suffix "$vsuffix" \
         --author "$author" --date "$date" --classification "$classification" \
-        "${logo_args[@]}" "${tp_args[@]}"
+        ${logo_args[@]+"${logo_args[@]}"} ${tp_args[@]+"${tp_args[@]}"}
 }
 
 # -----------------------------------------------------------------------------
