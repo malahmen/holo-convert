@@ -1308,6 +1308,10 @@ resolve_title_page_yaml() {
 # Intentionally minimal — no external YAML parser required.
 # Only handles simple scalar values on a single line.
 #
+# A markdown source is only searched inside its leading `---` front-matter
+# block (none → no value), so body text like "version: 2" can't override the
+# letterhead. A .yaml/.yml file (e.g. title-pages/default.yaml) is read whole.
+#
 # Arguments:
 #   $1 — YAML file path
 #   $2 — field name (e.g. "template" or "image")
@@ -1318,10 +1322,15 @@ resolve_title_page_yaml() {
 parse_yaml_field() {
     local file="$1"
     local field="$2"
-    # `|| true`: a missing key means grep exits non-zero, which under
-    # `set -euo pipefail` would abort the caller's `x=$(parse_yaml_field …)`.
-    # A missing field is a normal "unset" here, not an error.
-    grep -E "^${field}:" "$file" | head -1 | sed "s/^${field}:[[:space:]]*//" | tr -d '\r' || true
+    # `|| true`: keeps a missing key from tripping `set -e` in the caller's
+    # `x=$(parse_yaml_field …)` — an unset field is normal, not an error.
+    local whole=0
+    case "$file" in *.yaml|*.yml) whole=1 ;; esac
+    awk -v f="$field" -v whole="$whole" '
+        NR == 1 && !whole { if (!/^---[[:space:]]*$/) exit; next }
+        !whole && /^(---|\.\.\.)[[:space:]]*$/ { exit }
+        index($0, f ":") == 1 { sub("^" f ":[[:space:]]*", ""); print; exit }
+    ' "$file" | tr -d '\r' || true
 }
 
 # -----------------------------------------------------------------------------
@@ -1366,8 +1375,12 @@ strip_title() {
     local file="$1"
 
     if head -1 "$file" | grep -qE '^---[[:space:]]*$'; then
-        # Remove only the title: line from front matter
-        sed '/^title:[[:space:]]*/d' "$file"
+        # Remove only the title: line INSIDE the front-matter block — a body
+        # line that happens to start with "title:" is content, keep it.
+        awk 'NR == 1 { print; next }
+             !done && /^(---|\.\.\.)[[:space:]]*$/ { done = 1; print; next }
+             !done && /^title:/ { next }
+             { print }' "$file"
     else
         # Remove first # H1 line only
         awk 'found || !/^# /{print} !found && /^# /{found=1}' "$file"
