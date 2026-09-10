@@ -9,6 +9,6 @@
 template: default.md
 
 # image: optional logo shown on the title page — a path relative to this yaml,
-# or an absolute path. Leave it unset (as below) and the TUI prompts for a path
-# at conversion time (blank = no image).
+# or an absolute path. Leave it unset (as below) for no image, or pass
+# --image PATH at conversion time.
 # image: assets/logo.png

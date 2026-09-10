@@ -1675,20 +1675,22 @@ REQUIRED
 
 COMMON
   -o, --output DIR                   output directory (default: ./output)
-  --toc [--toc-depth N]              table of contents (depth default 3)
-  --title-page [--image PATH]        add a title page (optional image)
+  --[no-]toc [--toc-depth N]         table of contents (depth default 3)
+  --[no-]title-page [--image PATH]   add a title page (optional image); skipped by --concat
   --[no-]substitutions               smart quote/dash substitutions
   --[no-]strip-rules                 strip horizontal rules
   --[no-]unwrap-wikilinks            unwrap [[wikilinks]]
   --[no-]raster-svg                  rasterize SVG images
-  --concat [--no-concat-pagebreak]   combine inputs into one document
+  --[no-]concat                      combine inputs into one document (first # heading
+                                       becomes the title; no title page / link reconcile)
+  --[no-]concat-pagebreak            page break between concatenated inputs (default on)
   --fix-links                        also write confident anchor-link fixes to the SOURCE
                                        (default only reconciles the output copy)
   --no-check-links                   skip the internal-link reconcile/check (on by default)
 
 DOCX
   --reference letterhead|plain|none|PATH   reference doc (default: plain)
-  --letterhead                       shorthand for --reference letterhead
+  --[no-]letterhead                  shorthand for --reference letterhead (plain)
   --page-size a4|letter
   --font NAME   --mono NAME          prose / monospace fonts
   --author|--classification|--version|--date|--logo VALUE   letterhead fields
