@@ -541,6 +541,31 @@ apply_docx_fonts() {
 }
 
 # -----------------------------------------------------------------------------
+# fontconfig family list, loaded once and normalised to one family per line.
+# `fc-list | grep -q` is unsafe under pipefail: grep exits on the first match
+# and fc-list can then die of SIGPIPE, turning "installed" into a false
+# "missing" (measured 3/30). Capture the list once, then grep the text.
+# -----------------------------------------------------------------------------
+_FC_FAMILIES=""
+_FC_LOADED=""
+_ensure_fc_families() {
+    [[ -n "$_FC_LOADED" ]] && return
+    _FC_LOADED=1
+    command -v fc-list &>/dev/null || return
+    local raw
+    raw=$(fc-list : family 2>/dev/null) || raw=""
+    # fc-list prints "Family A,Family B" per font — split and trim.
+    _FC_FAMILIES=$(printf '%s\n' "$raw" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+}
+
+# Does fontconfig list family $1 (exact, case-insensitive)? False without fc-list.
+fc_has_family() {
+    _ensure_fc_families
+    [[ -n "$_FC_FAMILIES" ]] || return 1
+    grep -qixF -- "$1" <<< "$_FC_FAMILIES"
+}
+
+# -----------------------------------------------------------------------------
 # Detect a usable monospace font and write .fcc/pdf/monofont.tex.
 # Called once per md→pdf run before conversion begins.
 #
@@ -610,14 +635,14 @@ detect_mono_font() {
             fi
         fi
     else
-        # Linux: fc-list is reliable
-        if fc-list : family | grep -qi "DejaVu Sans Mono"; then
+        # Linux: fc-list is reliable (queried once via fc_has_family)
+        if fc_has_family "DejaVu Sans Mono"; then
             chosen_font="DejaVu Sans Mono"
             font_tex_line='\setmonofont{DejaVu Sans Mono}'
-        elif fc-list : family | grep -qi "Noto Mono"; then
+        elif fc_has_family "Noto Mono"; then
             chosen_font="Noto Mono"
             font_tex_line='\setmonofont{Noto Mono}'
-        elif fc-list : family | grep -qi "Liberation Mono"; then
+        elif fc_has_family "Liberation Mono"; then
             chosen_font="Liberation Mono"
             font_tex_line='\setmonofont{Liberation Mono}'
         else
@@ -625,7 +650,8 @@ detect_mono_font() {
                 info "No preferred monospace font found. Attempting: sudo apt-get install fonts-dejavu..."
                 sudo apt-get install -y fonts-dejavu 2>/dev/null || true
                 fc-cache -f 2>/dev/null || true
-                if fc-list : family | grep -qi "DejaVu Sans Mono"; then
+                _FC_LOADED=""   # font set changed — reload the cache
+                if fc_has_family "DejaVu Sans Mono"; then
                     chosen_font="DejaVu Sans Mono"
                     font_tex_line='\setmonofont{DejaVu Sans Mono}'
                 fi
@@ -675,9 +701,7 @@ font_installed() {
     local family="$1"
 
     # fontconfig first (fast): reliable on Linux and macOS-with-Homebrew-fontconfig.
-    if command -v fc-list &>/dev/null \
-       && fc-list : family | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
-            | grep -qixF "$family"; then
+    if fc_has_family "$family"; then
         return 0
     fi
 
@@ -685,7 +709,7 @@ font_installed() {
     # like Helvetica are offered even when fontconfig does not see them.
     if [[ "$(uname)" == "Darwin" ]]; then
         _ensure_macos_fonts
-        printf '%s\n' "$_MACOS_FONT_FAMILIES" | grep -qixF "$family"
+        grep -qixF -- "$family" <<< "$_MACOS_FONT_FAMILIES"
         return
     fi
 
