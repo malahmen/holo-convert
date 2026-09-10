@@ -9,3 +9,6 @@ __pycache__/
 .DS_Store
 *.swp
 *.swo
+
+# Regenerated on every md->pdf run by detect_mono_font (holds a machine-local font path)
+.fcc/pdf/monofont.tex
