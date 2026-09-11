@@ -251,6 +251,15 @@ ensure_pdf_config() {
     info "Using ${HEADER_TEX}."
 }
 
+# Is PDF_ENGINE a LaTeX engine? Only then do header.tex / monofont.tex / the
+# LaTeX title-page template / \tableofcontents apply. The HTML engines
+# (wkhtmltopdf, weasyprint, pagedjs-cli) get pandoc-native --toc, a markdown
+# title block and an HTML page-break div from pagebreak.lua instead.
+is_latex_engine() {
+    case "$PDF_ENGINE" in xelatex|lualatex|pdflatex) return 0 ;; esac
+    return 1
+}
+
 # -----------------------------------------------------------------------------
 # Seed the working .fcc/title-pages/ with the bundled default template.
 # Unlike the PDF/DOCX asset trees these are user-customisable, so we only copy
@@ -812,13 +821,19 @@ convert_md_to_pdf() {
         -o "$output_file"
         --from="$MD_INPUT_FORMAT"
         --pdf-engine="$PDF_ENGINE"
-        -H "$HEADER_TEX"
-        -H "$MONOFONT_TEX"
-        -V colorlinks=true
-        -V linkcolor=blue
-        -V urlcolor=blue
-        -V citecolor=blue
     )
+    # LaTeX-only: the code-block/table header, the monospace font and the
+    # hyperref link colours. An HTML engine would choke on -H *.tex.
+    if is_latex_engine; then
+        pandoc_args+=(
+            -H "$HEADER_TEX"
+            -H "$MONOFONT_TEX"
+            -V colorlinks=true
+            -V linkcolor=blue
+            -V urlcolor=blue
+            -V citecolor=blue
+        )
+    fi
     [[ -n "$res_path" ]] && pandoc_args+=(--resource-path="$res_path")
 
     # Add optional assets only when present, so a missing bundle degrades
@@ -1490,6 +1505,13 @@ apply_title_page() {
         [[ -n "$image_abs" ]] && img_line="![](${image_abs}){width=35%}"
         rendered=$(printf '%s\n\n::: {custom-style="Title"}\n%s\n:::\n\n\\newpage\n' \
             "$img_line" "$title")
+    elif ! is_latex_engine; then
+        # HTML PDF engine: the LaTeX template can't render, so build a plain
+        # centered block (fenced div + bracketed span carry inline CSS to HTML).
+        local img_line=""
+        [[ -n "$image_abs" ]] && img_line="![](${image_abs}){width=35%}"
+        rendered=$(printf '::: {style="text-align:center; margin-top:30vh; margin-bottom:30vh"}\n%s\n\n[%s]{style="font-size:2.2em; font-weight:bold"}\n:::\n\n\\newpage\n' \
+            "$img_line" "$title")
     else
         if [[ -n "$image_abs" ]]; then
             # xelatex only embeds pdf/png/jpg/eps — convert anything else (gif,
@@ -1525,10 +1547,13 @@ apply_title_page() {
             local _toc
             _toc=$(printf '<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/><w:docPartUnique/></w:docPartObj></w:sdtPr><w:sdtContent><w:p><w:pPr><w:pStyle w:val="TOCHeading"/></w:pPr><w:r><w:t xml:space="preserve">Table of Contents</w:t></w:r></w:p><w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/><w:instrText xml:space="preserve">TOC \\o "1-%s" \\h \\z \\u</w:instrText><w:fldChar w:fldCharType="separate"/><w:fldChar w:fldCharType="end"/></w:r></w:p></w:sdtContent></w:sdt>' "$_depth")
             rendered="${rendered}"$'\n\n```{=openxml}\n'"${_toc}"$'\n```\n\n\\newpage'
-        else
+            TOC_PLACED_IN_TITLE=true
+        elif is_latex_engine; then
             rendered="${rendered}"$'\n\\setcounter{tocdepth}{'"${_depth}"$'}\n\\tableofcontents\n\\newpage'
+            TOC_PLACED_IN_TITLE=true
         fi
-        TOC_PLACED_IN_TITLE=true
+        # HTML engines: no \tableofcontents — the converter passes pandoc's own
+        # --toc, which lands above the title block (TOC_PLACED_IN_TITLE stays false).
     fi
 
     # --- Rewrite tmp file: title page + stripped source ---
@@ -1718,7 +1743,9 @@ DOCX
   --[no-]tp-header --[no-]tp-footer --[no-]tp-pagenum        title-page chrome
 
 PDF
-  --pdf-engine xelatex|lualatex|pdflatex|...
+  --pdf-engine xelatex|lualatex|pdflatex|wkhtmltopdf|weasyprint|pagedjs-cli
+                                     (HTML engines: no LaTeX header/title template;
+                                     pandoc-native --toc lands above the title page)
   --font NAME                        prose font
 
 DOCX->MD
@@ -1953,8 +1980,6 @@ main_engine() {
 
     case "${SOURCE_FORMAT}->${OUTPUT_FORMAT}" in
         "md->pdf")
-            ensure_pdf_config
-            detect_mono_font
             if [[ -z "$PDF_ENGINE" ]]; then
                 if printf '%s\n' "${AVAILABLE_ENGINES[@]}" | grep -qx xelatex; then
                     PDF_ENGINE=xelatex
@@ -1963,6 +1988,13 @@ main_engine() {
                 fi
             elif ! printf '%s\n' "${AVAILABLE_ENGINES[@]}" | grep -qx "$PDF_ENGINE"; then
                 edie "--pdf-engine '$PDF_ENGINE' not available (have: ${AVAILABLE_ENGINES[*]})."
+            fi
+            if is_latex_engine; then
+                ensure_pdf_config
+                detect_mono_font
+            else
+                ensure_fcc_pdf_assets   # lua filters + theme still apply
+                enote "HTML PDF engine '${PDF_ENGINE}': LaTeX header/monospace font/title template are skipped; TOC and page breaks use pandoc's HTML output."
             fi
             if [[ -n "$PDF_FONT" ]] && ! font_installed "$PDF_FONT"; then
                 enote "font '$PDF_FONT' not installed — using pandoc default."; PDF_FONT=""
