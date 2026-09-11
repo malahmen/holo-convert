@@ -119,11 +119,13 @@ def main():
         with zipfile.ZipFile(args.docx) as z:
             infos = z.infolist()
             data = {i.filename: z.read(i.filename) for i in infos}
-    except (OSError, zipfile.BadZipFile):
-        return
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f"cannot read docx {args.docx}: {e}", file=sys.stderr)
+        return 1
     key = "word/document.xml"
     if key not in data:
-        return
+        print(f"not a docx (no {key}): {args.docx}", file=sys.stderr)
+        return 1
 
     doc = data[key].decode("utf-8")
     orig = doc
@@ -133,7 +135,7 @@ def main():
     doc = center_images(doc)
     doc = spacer_before_heading_tables(doc)
     if doc == orig:
-        return
+        return 0
 
     data[key] = doc.encode("utf-8")
     tmp = args.docx + ".tmp"
@@ -142,7 +144,8 @@ def main():
             z.writestr(i, data[i.filename])
     os.replace(tmp, args.docx)
     print("adjusted docx layout (page-size/image fit/centering)")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

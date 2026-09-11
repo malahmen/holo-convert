@@ -934,6 +934,13 @@ _tp_resolve() {
 # Sets DOCX_REFERENCE_DOC (empty string = no reference doc).
 # -----------------------------------------------------------------------------
 
+# Run one DOCX post-processing step ($1 = function, rest = its args); a non-zero
+# exit is reported as a warning rather than silently ignored.
+_docx_post() {
+    local step="$1"; shift
+    "$step" "$@" || warn "${step} failed (exit $?) — output kept as produced by pandoc."
+}
+
 # -----------------------------------------------------------------------------
 # Run conversion: md → docx (single file)
 # $1 — file to convert (may be a .tmp.md if title page is active)
@@ -995,18 +1002,25 @@ convert_md_to_docx() {
     local rc=$?
 
     if [[ $rc -eq 0 ]]; then
-        fold_docx_pagebreaks "$output_file"
-        apply_docx_fonts "$output_file"
+        # Post-processors are styling passes: a failing one is reported and the
+        # document is kept as pandoc produced it. Only a vanished output file
+        # (a step that broke mid-rewrite) counts as a failed conversion.
+        _docx_post fold_docx_pagebreaks "$output_file"
+        _docx_post apply_docx_fonts "$output_file"
         # Explicit table banding — only with a built-in reference (a custom
         # template owns its own table styling).
-        is_builtin_docx_ref && shade_docx_tables "$output_file"
+        is_builtin_docx_ref && _docx_post shade_docx_tables "$output_file"
         # Layout: page size + image fit/centering (built-in refs only).
-        is_builtin_docx_ref && layout_docx "$output_file"
+        is_builtin_docx_ref && _docx_post layout_docx "$output_file"
         # Native, numbered Word figure captions (built-in refs only; "none"
         # keeps pandoc's raw output untouched).
-        is_builtin_docx_ref && caption_docx_figures "$output_file"
+        is_builtin_docx_ref && _docx_post caption_docx_figures "$output_file"
         # Letterhead: fill the header/footer tokens (+ core props) per document.
-        [[ "$DOCX_LETTERHEAD" == true ]] && stamp_docx_letterhead "$output_file" "$name_source"
+        [[ "$DOCX_LETTERHEAD" == true ]] && _docx_post stamp_docx_letterhead "$output_file" "$name_source"
+        if [[ ! -f "$output_file" ]]; then
+            warn "Post-processing left no output for: ${input_file}"
+            return 1
+        fi
         success "$(basename "$output_file") ✓"
         open_file "$output_file"
         return 0        # don't let open_file's exit status mask success
@@ -1054,8 +1068,9 @@ convert_docx_to_md() {
 
     run_step "Converting $(basename "$input_file") → $(basename "$output_file") ..." \
         pandoc "${pandoc_args[@]}"
+    local rc=$?
 
-    if [[ $? -eq 0 ]]; then
+    if [[ $rc -eq 0 ]]; then
         success "$(basename "$output_file") ✓"
         if [[ -d "$media_dir" ]]; then
             local media_count
@@ -1065,8 +1080,10 @@ convert_docx_to_md() {
             fi
         fi
         open_file "$output_file"
+        return 0        # don't let open_file's exit status mask success
     else
         warn "Failed to convert: ${input_file}"
+        return 1
     fi
 }
 
@@ -1643,6 +1660,8 @@ run_conversions() {
 
     echo ""
     enote "Conversion complete — ${succeeded} succeeded, ${failed} failed."
+    # Callers (the TUI, CI) rely on the exit status: any failure → non-zero.
+    [[ "$failed" -eq 0 ]]
 }
 
 # =============================================================================

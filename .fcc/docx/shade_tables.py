@@ -67,7 +67,8 @@ def process_table(tbl):
 
 def main():
     if len(sys.argv) < 2:
-        return
+        print(f'usage: {os.path.basename(sys.argv[0])} <file.docx> [header-fill] [band-fill]', file=sys.stderr)
+        return 2
     path = sys.argv[1]
     global HEADER_FILL, BAND_FILL
     if len(sys.argv) > 2 and sys.argv[2]:
@@ -79,12 +80,14 @@ def main():
         with zipfile.ZipFile(path) as z:
             infos = z.infolist()
             data = {i.filename: z.read(i.filename) for i in infos}
-    except (OSError, zipfile.BadZipFile):
-        return
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f'cannot read docx {path}: {e}', file=sys.stderr)
+        return 1
 
     key = 'word/document.xml'
     if key not in data:
-        return
+        print(f'not a docx (no {key}): {path}', file=sys.stderr)
+        return 1
     doc = data[key].decode('utf-8')
     new = TBL_RE.sub(lambda m: process_table(m.group(0)), doc)
     if new == doc:
@@ -100,4 +103,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

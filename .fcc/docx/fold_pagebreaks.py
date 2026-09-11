@@ -66,17 +66,20 @@ def fold(xml):
 
 def main():
     if len(sys.argv) < 2:
-        return
+        print(f'usage: {os.path.basename(sys.argv[0])} <file.docx>', file=sys.stderr)
+        return 2
     path = sys.argv[1]
     try:
         with zipfile.ZipFile(path) as z:
             infos = z.infolist()
             data = {i.filename: z.read(i.filename) for i in infos}
-    except (OSError, zipfile.BadZipFile):
-        return
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f'cannot read docx {path}: {e}', file=sys.stderr)
+        return 1
     key = 'word/document.xml'
     if key not in data:
-        return
+        print(f'not a docx (no {key}): {path}', file=sys.stderr)
+        return 1
     xml = data[key].decode('utf-8')
     new, n = fold(xml)
     if n == 0 or new == xml:
@@ -91,4 +94,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

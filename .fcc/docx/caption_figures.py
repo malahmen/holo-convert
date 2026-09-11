@@ -83,7 +83,8 @@ def ensure_update_fields(data):
 
 def main():
     if len(sys.argv) < 2:
-        return
+        print(f'usage: {os.path.basename(sys.argv[0])} <file.docx> [label]', file=sys.stderr)
+        return 2
     path = sys.argv[1]
     global LABEL
     if len(sys.argv) > 2 and sys.argv[2]:
@@ -93,12 +94,14 @@ def main():
         with zipfile.ZipFile(path) as z:
             infos = z.infolist()
             data = {i.filename: z.read(i.filename) for i in infos}
-    except (OSError, zipfile.BadZipFile):
-        return
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f'cannot read docx {path}: {e}', file=sys.stderr)
+        return 1
 
     key = 'word/document.xml'
     if key not in data:
-        return
+        print(f'not a docx (no {key}): {path}', file=sys.stderr)
+        return 1
     doc = data[key].decode('utf-8')
 
     count = [0]
@@ -114,7 +117,7 @@ def main():
 
     new = PARA_RE.sub(process, doc)
     if count[0] == 0 and new == doc:
-        return
+        return 0
     data[key] = new.encode('utf-8')
     if count[0]:
         ensure_update_fields(data)
@@ -125,7 +128,8 @@ def main():
             z.writestr(i, data[i.filename])
     os.replace(tmp, path)
     print('captioned %d figure(s) as native Word captions (%s N: ...)' % (count[0], LABEL))
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

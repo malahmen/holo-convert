@@ -42,15 +42,17 @@ def set_mono_font(xml, mono):
 
 def main():
     if len(sys.argv) < 3:
-        return
+        print(f'usage: {os.path.basename(sys.argv[0])} <file.docx> <prose-font> [mono-font]', file=sys.stderr)
+        return 2
     path, prose = sys.argv[1], sys.argv[2]
     mono = sys.argv[3] if len(sys.argv) > 3 else ''
     try:
         with zipfile.ZipFile(path) as z:
             infos = z.infolist()
             data = {i.filename: z.read(i.filename) for i in infos}
-    except (OSError, zipfile.BadZipFile):
-        return
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f'cannot read docx {path}: {e}', file=sys.stderr)
+        return 1
 
     changed = False
     tkey = 'word/theme/theme1.xml'
@@ -69,14 +71,15 @@ def main():
             changed = True
 
     if not changed:
-        return
+        return 0
     tmp = path + '.tmp'
     with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as z:
         for i in infos:
             z.writestr(i, data[i.filename])
     os.replace(tmp, path)
     print(f'applied fonts: prose={prose or "(unchanged)"} mono={mono or "(unchanged)"}')
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
