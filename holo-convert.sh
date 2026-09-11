@@ -1259,9 +1259,15 @@ apply_svg_raster() {
         i=$(( i + 1 ))
         png="${media}/svg_${i}_$(basename "${abs%.svg}").png"
         if rsvg-convert --zoom 2 -o "$png" "$abs" 2>/dev/null; then
-            # rewrite this svg path -> the PNG (absolute), everywhere it appears
-            local esc_svg="${svg//&/\\&}"
-            sed -i.bak "s|(${svg})|(${png})|g" "$tmp_file" && rm -f "${tmp_file}.bak"
+            # rewrite this svg path -> the PNG (absolute), everywhere it appears.
+            # Escape for sed: BRE metacharacters and the | delimiter in the
+            # pattern; \ & | in the replacement — a path like a.b[1].svg or one
+            # containing & would otherwise silently miss or corrupt the rewrite.
+            # (bash expansions, not sed: BSD/GNU disagree on bracket classes.)
+            local esc_svg="${svg//\\/\\\\}" esc_png="${png//\\/\\\\}" c
+            for c in '.' '*' '[' ']' '^' '$' '|'; do esc_svg="${esc_svg//"$c"/\\$c}"; done
+            esc_png="${esc_png//&/\\&}"; esc_png="${esc_png//|/\\|}"
+            sed -i.bak "s|(${esc_svg})|(${esc_png})|g" "$tmp_file" && rm -f "${tmp_file}.bak"
         else
             warn "Failed to rasterize: ${svg}"
         fi
