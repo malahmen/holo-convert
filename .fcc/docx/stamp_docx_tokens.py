@@ -18,6 +18,7 @@ Any token left unset stamps to an empty string; --logo omitted/missing → no lo
 import argparse
 import os
 import re
+import sys
 import zipfile
 
 R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -275,8 +276,9 @@ def main():
         with zipfile.ZipFile(args.docx) as z:
             infos = z.infolist()
             data = {i.filename: z.read(i.filename) for i in infos}
-    except (OSError, zipfile.BadZipFile):
-        return
+    except (OSError, zipfile.BadZipFile) as e:
+        print(f"cannot read docx {args.docx}: {e}", file=sys.stderr)
+        return 1
 
     changed = False
     for name, raw in list(data.items()):
@@ -309,7 +311,7 @@ def main():
         ) or changed
 
     if not changed:
-        return
+        return 0
     tmp = args.docx + ".tmp"
     written = set()
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
@@ -321,7 +323,8 @@ def main():
                 z.writestr(name, content)
     os.replace(tmp, args.docx)
     print("stamped letterhead" + (" + logo" if (args.logo and os.path.isfile(args.logo)) else ""))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

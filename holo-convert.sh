@@ -12,9 +12,9 @@
 #   holo-convert.sh --help
 #
 # Dependencies (checked, not installed — see --help / README, or run --setup):
-#   always: bash 4+, pandoc      PDF: a LaTeX engine (xelatex)      DOCX: python3
+#   always: bash 4+, pandoc 2.10+   PDF: a LaTeX engine (xelatex)   DOCX: python3
 #   optional (--with-optional): rsvg-convert (SVG), ImageMagick (GIF),
-#     fontconfig (fonts), mermaid-cli (diagrams); sips is built in on macOS
+#     fontconfig + DejaVu fonts (fonts), mermaid-cli (diagrams); sips is built in on macOS
 # Config: .fcc/pdf/header.tex, .fcc/title-pages/*.{yaml,md} (auto-seeded).
 # -----------------------------------------------------------------------------
 
@@ -36,6 +36,8 @@ TITLE_PAGES_DIR=".fcc/title-pages"
 OUTPUT_DIR="./output"
 DEFAULT_DEPTH=3
 
+PANDOC_MIN="2.10"         # oldest pandoc supported (Lua Table API in widen-tables.lua)
+PANDOC_VERSION=""         # detected once by guard_deps (e.g. "3.1.11")
 SETUP_DEPS=false          # --setup: install dependencies (explicit, opt-in)
 WITH_OPTIONAL=false       # --with-optional: also install the optional tools
 MD_VARIANT="gfm"          # docx→md output variant (overridable via --md-variant)
@@ -249,6 +251,15 @@ ensure_pdf_config() {
     info "Using ${HEADER_TEX}."
 }
 
+# Is PDF_ENGINE a LaTeX engine? Only then do header.tex / monofont.tex / the
+# LaTeX title-page template / \tableofcontents apply. The HTML engines
+# (wkhtmltopdf, weasyprint, pagedjs-cli) get pandoc-native --toc, a markdown
+# title block and an HTML page-break div from pagebreak.lua instead.
+is_latex_engine() {
+    case "$PDF_ENGINE" in xelatex|lualatex|pdflatex) return 0 ;; esac
+    return 1
+}
+
 # -----------------------------------------------------------------------------
 # Seed the working .fcc/title-pages/ with the bundled default template.
 # Unlike the PDF/DOCX asset trees these are user-customisable, so we only copy
@@ -443,10 +454,12 @@ stamp_docx_letterhead() {
         tp_args=(--tp-header "$_sh" --tp-footer "$_sf" --tp-pagenum "$_sp")
     fi
 
+    # ${arr[@]+"${arr[@]}"}: an EMPTY array expanded as "${arr[@]}" is an
+    # "unbound variable" under set -u on bash < 4.4 (macOS ships 3.2).
     python3 "$script" "$docx" \
         --title "$title" --version-suffix "$vsuffix" \
         --author "$author" --date "$date" --classification "$classification" \
-        "${logo_args[@]}" "${tp_args[@]}"
+        ${logo_args[@]+"${logo_args[@]}"} ${tp_args[@]+"${tp_args[@]}"}
 }
 
 # -----------------------------------------------------------------------------
@@ -619,20 +632,10 @@ detect_mono_font() {
             ls "${sys_fonts}"/LiberationMono-Regular.ttf &>/dev/null 2>&1 && lib_path="${sys_fonts}"
             font_tex_line='\setmonofont{LiberationMono-Regular.ttf}[Path='"${lib_path}"'/]'
         else
-            # Attempt to install DejaVu via Homebrew cask
-            if command -v brew &>/dev/null; then
-                info "No preferred monospace font found. Attempting: brew install --cask font-dejavu..."
-                brew install --cask font-dejavu 2>/dev/null || true
-                if ls "${user_fonts}"/DejaVuSansMono.ttf &>/dev/null 2>&1; then
-                    chosen_font="DejaVu Sans Mono"
-                    font_tex_line='\setmonofont{DejaVuSansMono.ttf}[Path='"${user_fonts}"'/, BoldFont=DejaVuSansMono-Bold.ttf, ItalicFont=DejaVuSansMono-Oblique.ttf, BoldItalicFont=DejaVuSansMono-BoldOblique.ttf]'
-                fi
-            fi
-            if [[ -z "$chosen_font" ]]; then
-                chosen_font="Courier New"
-                font_tex_line='\setmonofont{Courier New}'
-                warn "Falling back to Courier New for monospace. For better code rendering, install DejaVu fonts: brew install --cask font-dejavu"
-            fi
+            # Never install during a conversion — that is --with-optional's job.
+            chosen_font="Courier New"
+            font_tex_line='\setmonofont{Courier New}'
+            warn "No DejaVu/Noto/Liberation Mono found — code falls back to Courier New. Install one with: holo-convert.sh --with-optional (or: brew install --cask font-dejavu)."
         fi
     else
         # Linux: fc-list is reliable (queried once via fc_has_family)
@@ -646,21 +649,10 @@ detect_mono_font() {
             chosen_font="Liberation Mono"
             font_tex_line='\setmonofont{Liberation Mono}'
         else
-            if command -v apt-get &>/dev/null && sudo -n true 2>/dev/null; then
-                info "No preferred monospace font found. Attempting: sudo apt-get install fonts-dejavu..."
-                sudo apt-get install -y fonts-dejavu 2>/dev/null || true
-                fc-cache -f 2>/dev/null || true
-                _FC_LOADED=""   # font set changed — reload the cache
-                if fc_has_family "DejaVu Sans Mono"; then
-                    chosen_font="DejaVu Sans Mono"
-                    font_tex_line='\setmonofont{DejaVu Sans Mono}'
-                fi
-            fi
-            if [[ -z "$chosen_font" ]]; then
-                chosen_font="Courier New"
-                font_tex_line='\setmonofont{Courier New}'
-                warn "Falling back to Courier New for monospace. For better code rendering, install DejaVu fonts: sudo apt-get install fonts-dejavu"
-            fi
+            # Never install during a conversion — that is --with-optional's job.
+            chosen_font="Courier New"
+            font_tex_line='\setmonofont{Courier New}'
+            warn "No DejaVu/Noto/Liberation Mono found — code falls back to Courier New. Install one with: holo-convert.sh --with-optional (or: sudo apt-get install fonts-dejavu)."
         fi
     fi
 
@@ -832,19 +824,25 @@ convert_md_to_pdf() {
         -o "$output_file"
         --from="$MD_INPUT_FORMAT"
         --pdf-engine="$PDF_ENGINE"
-        -H "$HEADER_TEX"
-        -H "$MONOFONT_TEX"
-        -V colorlinks=true
-        -V linkcolor=blue
-        -V urlcolor=blue
-        -V citecolor=blue
     )
+    # LaTeX-only: the code-block/table header, the monospace font and the
+    # hyperref link colours. An HTML engine would choke on -H *.tex.
+    if is_latex_engine; then
+        pandoc_args+=(
+            -H "$HEADER_TEX"
+            -H "$MONOFONT_TEX"
+            -V colorlinks=true
+            -V linkcolor=blue
+            -V urlcolor=blue
+            -V citecolor=blue
+        )
+    fi
     [[ -n "$res_path" ]] && pandoc_args+=(--resource-path="$res_path")
 
     # Add optional assets only when present, so a missing bundle degrades
     # gracefully instead of failing the whole conversion.
     [[ -f "${FCC_DIR}/pdf/p10k.theme" ]] && \
-        pandoc_args+=(--syntax-highlighting="${FCC_DIR}/pdf/p10k.theme")
+        pandoc_args+=("$(highlight_theme_arg "${FCC_DIR}/pdf/p10k.theme")")
     local lf lf_path
     for lf in widen-tables.lua render-mermaid.lua pagebreak.lua; do
         lf_path="$(resolve_lua_filter "$lf")"
@@ -958,6 +956,13 @@ _tp_resolve() {
 # Sets DOCX_REFERENCE_DOC (empty string = no reference doc).
 # -----------------------------------------------------------------------------
 
+# Run one DOCX post-processing step ($1 = function, rest = its args); a non-zero
+# exit is reported as a warning rather than silently ignored.
+_docx_post() {
+    local step="$1"; shift
+    "$step" "$@" || warn "${step} failed (exit $?) — output kept as produced by pandoc."
+}
+
 # -----------------------------------------------------------------------------
 # Run conversion: md → docx (single file)
 # $1 — file to convert (may be a .tmp.md if title page is active)
@@ -1011,7 +1016,7 @@ convert_md_to_docx() {
     if is_builtin_docx_ref; then
         local theme_path
         theme_path="$(resolve_docx_asset "p10k.theme")"
-        [[ -n "$theme_path" ]] && pandoc_args+=(--syntax-highlighting="$theme_path")
+        [[ -n "$theme_path" ]] && pandoc_args+=("$(highlight_theme_arg "$theme_path")")
     fi
 
     run_step "Converting $(basename "$input_file") → $(basename "$output_file") ..." \
@@ -1019,18 +1024,25 @@ convert_md_to_docx() {
     local rc=$?
 
     if [[ $rc -eq 0 ]]; then
-        fold_docx_pagebreaks "$output_file"
-        apply_docx_fonts "$output_file"
+        # Post-processors are styling passes: a failing one is reported and the
+        # document is kept as pandoc produced it. Only a vanished output file
+        # (a step that broke mid-rewrite) counts as a failed conversion.
+        _docx_post fold_docx_pagebreaks "$output_file"
+        _docx_post apply_docx_fonts "$output_file"
         # Explicit table banding — only with a built-in reference (a custom
         # template owns its own table styling).
-        is_builtin_docx_ref && shade_docx_tables "$output_file"
+        is_builtin_docx_ref && _docx_post shade_docx_tables "$output_file"
         # Layout: page size + image fit/centering (built-in refs only).
-        is_builtin_docx_ref && layout_docx "$output_file"
+        is_builtin_docx_ref && _docx_post layout_docx "$output_file"
         # Native, numbered Word figure captions (built-in refs only; "none"
         # keeps pandoc's raw output untouched).
-        is_builtin_docx_ref && caption_docx_figures "$output_file"
+        is_builtin_docx_ref && _docx_post caption_docx_figures "$output_file"
         # Letterhead: fill the header/footer tokens (+ core props) per document.
-        [[ "$DOCX_LETTERHEAD" == true ]] && stamp_docx_letterhead "$output_file" "$name_source"
+        [[ "$DOCX_LETTERHEAD" == true ]] && _docx_post stamp_docx_letterhead "$output_file" "$name_source"
+        if [[ ! -f "$output_file" ]]; then
+            warn "Post-processing left no output for: ${input_file}"
+            return 1
+        fi
         success "$(basename "$output_file") ✓"
         open_file "$output_file"
         return 0        # don't let open_file's exit status mask success
@@ -1078,8 +1090,9 @@ convert_docx_to_md() {
 
     run_step "Converting $(basename "$input_file") → $(basename "$output_file") ..." \
         pandoc "${pandoc_args[@]}"
+    local rc=$?
 
-    if [[ $? -eq 0 ]]; then
+    if [[ $rc -eq 0 ]]; then
         success "$(basename "$output_file") ✓"
         if [[ -d "$media_dir" ]]; then
             local media_count
@@ -1089,8 +1102,10 @@ convert_docx_to_md() {
             fi
         fi
         open_file "$output_file"
+        return 0        # don't let open_file's exit status mask success
     else
         warn "Failed to convert: ${input_file}"
+        return 1
     fi
 }
 
@@ -1493,6 +1508,13 @@ apply_title_page() {
         [[ -n "$image_abs" ]] && img_line="![](${image_abs}){width=35%}"
         rendered=$(printf '%s\n\n::: {custom-style="Title"}\n%s\n:::\n\n\\newpage\n' \
             "$img_line" "$title")
+    elif ! is_latex_engine; then
+        # HTML PDF engine: the LaTeX template can't render, so build a plain
+        # centered block (fenced div + bracketed span carry inline CSS to HTML).
+        local img_line=""
+        [[ -n "$image_abs" ]] && img_line="![](${image_abs}){width=35%}"
+        rendered=$(printf '::: {style="text-align:center; margin-top:30vh; margin-bottom:30vh"}\n%s\n\n[%s]{style="font-size:2.2em; font-weight:bold"}\n:::\n\n\\newpage\n' \
+            "$img_line" "$title")
     else
         if [[ -n "$image_abs" ]]; then
             # xelatex only embeds pdf/png/jpg/eps — convert anything else (gif,
@@ -1528,10 +1550,13 @@ apply_title_page() {
             local _toc
             _toc=$(printf '<w:sdt><w:sdtPr><w:docPartObj><w:docPartGallery w:val="Table of Contents"/><w:docPartUnique/></w:docPartObj></w:sdtPr><w:sdtContent><w:p><w:pPr><w:pStyle w:val="TOCHeading"/></w:pPr><w:r><w:t xml:space="preserve">Table of Contents</w:t></w:r></w:p><w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/><w:instrText xml:space="preserve">TOC \\o "1-%s" \\h \\z \\u</w:instrText><w:fldChar w:fldCharType="separate"/><w:fldChar w:fldCharType="end"/></w:r></w:p></w:sdtContent></w:sdt>' "$_depth")
             rendered="${rendered}"$'\n\n```{=openxml}\n'"${_toc}"$'\n```\n\n\\newpage'
-        else
+            TOC_PLACED_IN_TITLE=true
+        elif is_latex_engine; then
             rendered="${rendered}"$'\n\\setcounter{tocdepth}{'"${_depth}"$'}\n\\tableofcontents\n\\newpage'
+            TOC_PLACED_IN_TITLE=true
         fi
-        TOC_PLACED_IN_TITLE=true
+        # HTML engines: no \tableofcontents — the converter passes pandoc's own
+        # --toc, which lands above the title block (TOC_PLACED_IN_TITLE stays false).
     fi
 
     # --- Rewrite tmp file: title page + stripped source ---
@@ -1667,6 +1692,8 @@ run_conversions() {
 
     echo ""
     enote "Conversion complete — ${succeeded} succeeded, ${failed} failed."
+    # Callers (the TUI, CI) rely on the exit status: any failure → non-zero.
+    [[ "$failed" -eq 0 ]]
 }
 
 # =============================================================================
@@ -1719,7 +1746,9 @@ DOCX
   --[no-]tp-header --[no-]tp-footer --[no-]tp-pagenum        title-page chrome
 
 PDF
-  --pdf-engine xelatex|lualatex|pdflatex|...
+  --pdf-engine xelatex|lualatex|pdflatex|wkhtmltopdf|weasyprint|pagedjs-cli
+                                     (HTML engines: no LaTeX header/title template;
+                                     pandoc-native --toc lands above the title page)
   --font NAME                        prose font
 
 DOCX->MD
@@ -1729,8 +1758,8 @@ SETUP
   --setup                            install dependencies, then exit (or, if a
                                      conversion is also given, install then run)
   --with-optional                    also install the optional tools (rsvg,
-                                     ImageMagick, fontconfig, mermaid-cli);
-                                     implies --setup
+                                     ImageMagick, fontconfig, DejaVu fonts,
+                                     mermaid-cli); implies --setup
     holo-convert.sh --setup                install the core (pandoc, LaTeX, python3)
     holo-convert.sh --setup --to docx       install just the DOCX deps
     holo-convert.sh --with-optional         install the core + all optional tools
@@ -1759,6 +1788,33 @@ _engine_install_pkg() {
     command -v "$bin" &>/dev/null && enote "${bin}: ready." || warn "${bin}: install may have failed — check the output above."
 }
 
+# DejaVu fonts — the preferred monospace for PDF code blocks. Fonts have no
+# binary to probe, so check the font files (macOS) / fontconfig instead of
+# going through _engine_install_pkg. --with-optional only; never at convert time.
+_dejavu_mono_present() {
+    [[ -f "${HOME}/Library/Fonts/DejaVuSansMono.ttf" || -f /Library/Fonts/DejaVuSansMono.ttf ]] && return 0
+    command -v fc-list &>/dev/null && font_installed "DejaVu Sans Mono"
+}
+_engine_install_dejavu() {
+    _dejavu_mono_present && { enote "DejaVu Sans Mono: already present."; return 0; }
+    enote "installing DejaVu fonts…"
+    case "$(uname -s)" in
+        Darwin)
+            command -v brew &>/dev/null || { warn "Homebrew is required to install fonts — see https://brew.sh"; return 0; }
+            brew install --cask font-dejavu || warn "font-dejavu install failed." ;;
+        Linux)
+            if command -v apt-get &>/dev/null; then sudo apt-get install -y fonts-dejavu || warn "fonts-dejavu install failed."
+            elif command -v dnf &>/dev/null; then sudo dnf install -y dejavu-sans-mono-fonts || warn "dejavu fonts install failed."
+            else warn "no supported package manager (apt/dnf) found to install DejaVu fonts."; return 0; fi
+            fc-cache -f 2>/dev/null || true ;;
+        *) warn "unsupported OS for font install: $(uname -s)" ;;
+    esac
+    # Fonts just changed: drop the cached fc-list snapshot so the check below
+    # (and any later font lookup) sees what was installed, not the old set.
+    _FC_LOADED=""
+    _dejavu_mono_present && enote "DejaVu Sans Mono: ready." || warn "DejaVu Sans Mono still not detected — check the output above."
+}
+
 # mermaid CLI (mmdc) is installed via npm (pulls in a headless browser), so it's
 # only attempted under --with-optional, and only when npm is available.
 _engine_install_mermaid() {
@@ -1775,8 +1831,9 @@ _engine_install_mermaid() {
 
 # --setup: install the engine's dependencies. Scoped to --to when given
 # (pdf → +LaTeX, docx → +python3), otherwise installs the full set. pandoc is
-# always installed. Optional tools (rsvg, ImageMagick, fontconfig, mermaid) are
-# installed only with --with-optional (rsvg also when --raster-svg is set).
+# always installed. Optional tools (rsvg, ImageMagick, fontconfig, DejaVu fonts,
+# mermaid) are installed only with --with-optional (rsvg also when --raster-svg
+# is set).
 setup_deps() {
     enote "Setting up holo-convert dependencies…"
     _engine_install_pkg pandoc pandoc pandoc pandoc
@@ -1800,6 +1857,7 @@ setup_deps() {
         _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
         _engine_install_pkg magick     imagemagick imagemagick ImageMagick
         _engine_install_pkg fc-list    fontconfig  fontconfig  fontconfig
+        _engine_install_dejavu
         _engine_install_mermaid
     elif [[ "${RASTER_SVG:-false}" == true ]]; then
         _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
@@ -1808,11 +1866,44 @@ setup_deps() {
     enote "Setup complete."
 }
 
+# Detect the pandoc version once (first line of `pandoc --version`, e.g.
+# "pandoc 3.1.11" → "3.1.11"). Read into a variable first: piping to head
+# under pipefail can fail on SIGPIPE.
+detect_pandoc_version() {
+    local out=""
+    out="$(pandoc --version 2>/dev/null)" || out=""
+    read -r _ PANDOC_VERSION _ <<< "${out%%$'\n'*}" || true
+    [[ "$PANDOC_VERSION" =~ ^[0-9]+(\.[0-9]+)* ]] || PANDOC_VERSION=""
+}
+
+# pandoc_at_least MAJOR MINOR — is the detected pandoc >= MAJOR.MINOR? An
+# unknown version counts as old, so the older (always-valid) flags are used.
+pandoc_at_least() {
+    local v="$PANDOC_VERSION" maj min
+    [[ -n "$v" ]] || return 1
+    maj="${v%%.*}"; min=0
+    [[ "$v" == *.* ]] && { min="${v#*.}"; min="${min%%.*}"; }
+    (( maj > $1 || (maj == $1 && min >= $2) ))
+}
+
+# The flag that points pandoc at a syntax theme file: --syntax-highlighting
+# replaced --highlight-style in pandoc 3.7 (Debian/Ubuntu apt ship 2.17/3.1).
+highlight_theme_arg() {
+    if pandoc_at_least 3 7; then printf -- '--syntax-highlighting=%s' "$1"
+    else printf -- '--highlight-style=%s' "$1"; fi
+}
+
 # Guardrail dependency checks — verify presence, never install. Sets
 # AVAILABLE_ENGINES for md->pdf. Uses gum-free output (edie/enote).
 guard_deps() {
     command -v pandoc &>/dev/null || edie \
         "pandoc not found — install it (https://pandoc.org/installing.html), or run this tool via scomp-link which can install it for you."
+    detect_pandoc_version
+    if [[ -z "$PANDOC_VERSION" ]]; then
+        warn "could not read the pandoc version — need ${PANDOC_MIN}+; continuing anyway."
+    elif ! pandoc_at_least "${PANDOC_MIN%%.*}" "${PANDOC_MIN#*.}"; then
+        edie "pandoc ${PANDOC_VERSION} is too old — need ${PANDOC_MIN}+ (https://pandoc.org/installing.html)."
+    fi
     case "${SOURCE_FORMAT}->${OUTPUT_FORMAT}" in
         "md->pdf")
             local found=() e
@@ -1830,7 +1921,7 @@ guard_deps() {
         "docx->md") : ;;
         *) edie "conversion '${SOURCE_FORMAT} -> ${OUTPUT_FORMAT}' is not supported." ;;
     esac
-    enote "dependencies OK for ${SOURCE_FORMAT}->${OUTPUT_FORMAT}."
+    enote "dependencies OK for ${SOURCE_FORMAT}->${OUTPUT_FORMAT} (pandoc ${PANDOC_VERSION:-?})."
 }
 
 # Parse engine flags into the same globals the select_* prompts would set.
@@ -1921,8 +2012,6 @@ main_engine() {
 
     case "${SOURCE_FORMAT}->${OUTPUT_FORMAT}" in
         "md->pdf")
-            ensure_pdf_config
-            detect_mono_font
             if [[ -z "$PDF_ENGINE" ]]; then
                 if printf '%s\n' "${AVAILABLE_ENGINES[@]}" | grep -qx xelatex; then
                     PDF_ENGINE=xelatex
@@ -1931,6 +2020,13 @@ main_engine() {
                 fi
             elif ! printf '%s\n' "${AVAILABLE_ENGINES[@]}" | grep -qx "$PDF_ENGINE"; then
                 edie "--pdf-engine '$PDF_ENGINE' not available (have: ${AVAILABLE_ENGINES[*]})."
+            fi
+            if is_latex_engine; then
+                ensure_pdf_config
+                detect_mono_font
+            else
+                ensure_fcc_pdf_assets   # lua filters + theme still apply
+                enote "HTML PDF engine '${PDF_ENGINE}': LaTeX header/monospace font/title template are skipped; TOC and page breaks use pandoc's HTML output."
             fi
             if [[ -n "$PDF_FONT" ]] && ! font_installed "$PDF_FONT"; then
                 enote "font '$PDF_FONT' not installed — using pandoc default."; PDF_FONT=""

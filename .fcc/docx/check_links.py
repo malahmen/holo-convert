@@ -176,17 +176,20 @@ def main():
     # --apply <anchor> <suggestion> <file>: rewrite one link, no analysis.
     if args and args[0] == "--apply":
         if len(args) != 4 or not os.path.isfile(args[3]):
-            return 0
+            print("usage: check_links.py --apply <anchor> <suggestion> <file.md>", file=sys.stderr)
+            return 2
         return 0 if apply_one(args[3], args[1], args[2]) else 1
     mode = "report"
     if args and args[0] in ("--json", "--fix", "--reconcile"):
         mode = args[0][2:]
         args = args[1:]
     if not args:
-        return 0
+        print("usage: check_links.py [--json|--fix|--reconcile] <file.md>", file=sys.stderr)
+        return 2
     path = args[0]
     if not os.path.isfile(path):
-        return 0
+        print(f"check_links: no such file: {path}", file=sys.stderr)
+        return 2
     try:
         findings = analyze(path)
     except Exception:

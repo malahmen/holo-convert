@@ -8,6 +8,8 @@
 -- Emits:
 --   LaTeX / beamer → \newpage
 --   DOCX (openxml) → a Word page break
+--   HTML           → a page-break div (for the HTML PDF engines: wkhtmltopdf,
+--                    weasyprint, pagedjs-cli)
 --   any other      → the marker is left untouched
 --
 -- The marker is honoured whether it sits in its own paragraph (blank lines
@@ -22,6 +24,7 @@ end
 
 local function supported_format()
     return FORMAT:match("latex") or FORMAT:match("beamer") or FORMAT:match("docx")
+        or FORMAT:match("html")
 end
 
 local function break_block()
@@ -37,6 +40,13 @@ local function break_block()
         return pandoc.RawBlock(
             "openxml",
             '<w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>'
+        )
+    elseif FORMAT:match("html") then
+        -- Both the legacy and the CSS Fragmentation property, for the
+        -- different HTML-to-PDF engines.
+        return pandoc.RawBlock(
+            "html",
+            '<div style="page-break-after: always; break-after: page;"></div>'
         )
     end
     return nil
@@ -114,6 +124,10 @@ local function is_break_block(b)
         if f == "openxml" then
             return b.text:find('w:type="page"', 1, true) ~= nil
                 or b.text:find("pageBreakBefore", 1, true) ~= nil
+        end
+        if f == "html" then
+            return b.text:find("page-break-after", 1, true) ~= nil
+                or b.text:find("break-after: page", 1, true) ~= nil
         end
         return false
     end
