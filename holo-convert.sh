@@ -14,7 +14,7 @@
 # Dependencies (checked, not installed — see --help / README, or run --setup):
 #   always: bash 4+, pandoc 2.10+   PDF: a LaTeX engine (xelatex)   DOCX: python3
 #   optional (--with-optional): rsvg-convert (SVG), ImageMagick (GIF),
-#     fontconfig (fonts), mermaid-cli (diagrams); sips is built in on macOS
+#     fontconfig + DejaVu fonts (fonts), mermaid-cli (diagrams); sips is built in on macOS
 # Config: .fcc/pdf/header.tex, .fcc/title-pages/*.{yaml,md} (auto-seeded).
 # -----------------------------------------------------------------------------
 
@@ -607,20 +607,10 @@ detect_mono_font() {
             ls "${sys_fonts}"/LiberationMono-Regular.ttf &>/dev/null 2>&1 && lib_path="${sys_fonts}"
             font_tex_line='\setmonofont{LiberationMono-Regular.ttf}[Path='"${lib_path}"'/]'
         else
-            # Attempt to install DejaVu via Homebrew cask
-            if command -v brew &>/dev/null; then
-                info "No preferred monospace font found. Attempting: brew install --cask font-dejavu..."
-                brew install --cask font-dejavu 2>/dev/null || true
-                if ls "${user_fonts}"/DejaVuSansMono.ttf &>/dev/null 2>&1; then
-                    chosen_font="DejaVu Sans Mono"
-                    font_tex_line='\setmonofont{DejaVuSansMono.ttf}[Path='"${user_fonts}"'/, BoldFont=DejaVuSansMono-Bold.ttf, ItalicFont=DejaVuSansMono-Oblique.ttf, BoldItalicFont=DejaVuSansMono-BoldOblique.ttf]'
-                fi
-            fi
-            if [[ -z "$chosen_font" ]]; then
-                chosen_font="Courier New"
-                font_tex_line='\setmonofont{Courier New}'
-                warn "Falling back to Courier New for monospace. For better code rendering, install DejaVu fonts: brew install --cask font-dejavu"
-            fi
+            # Never install during a conversion — that is --with-optional's job.
+            chosen_font="Courier New"
+            font_tex_line='\setmonofont{Courier New}'
+            warn "No DejaVu/Noto/Liberation Mono found — code falls back to Courier New. Install one with: holo-convert.sh --with-optional (or: brew install --cask font-dejavu)."
         fi
     else
         # Linux: fc-list is reliable
@@ -634,20 +624,10 @@ detect_mono_font() {
             chosen_font="Liberation Mono"
             font_tex_line='\setmonofont{Liberation Mono}'
         else
-            if command -v apt-get &>/dev/null && sudo -n true 2>/dev/null; then
-                info "No preferred monospace font found. Attempting: sudo apt-get install fonts-dejavu..."
-                sudo apt-get install -y fonts-dejavu 2>/dev/null || true
-                fc-cache -f 2>/dev/null || true
-                if fc-list : family | grep -qi "DejaVu Sans Mono"; then
-                    chosen_font="DejaVu Sans Mono"
-                    font_tex_line='\setmonofont{DejaVu Sans Mono}'
-                fi
-            fi
-            if [[ -z "$chosen_font" ]]; then
-                chosen_font="Courier New"
-                font_tex_line='\setmonofont{Courier New}'
-                warn "Falling back to Courier New for monospace. For better code rendering, install DejaVu fonts: sudo apt-get install fonts-dejavu"
-            fi
+            # Never install during a conversion — that is --with-optional's job.
+            chosen_font="Courier New"
+            font_tex_line='\setmonofont{Courier New}'
+            warn "No DejaVu/Noto/Liberation Mono found — code falls back to Courier New. Install one with: holo-convert.sh --with-optional (or: sudo apt-get install fonts-dejavu)."
         fi
     fi
 
@@ -1755,8 +1735,8 @@ SETUP
   --setup                            install dependencies, then exit (or, if a
                                      conversion is also given, install then run)
   --with-optional                    also install the optional tools (rsvg,
-                                     ImageMagick, fontconfig, mermaid-cli);
-                                     implies --setup
+                                     ImageMagick, fontconfig, DejaVu fonts,
+                                     mermaid-cli); implies --setup
     holo-convert.sh --setup                install the core (pandoc, LaTeX, python3)
     holo-convert.sh --setup --to docx       install just the DOCX deps
     holo-convert.sh --with-optional         install the core + all optional tools
@@ -1785,6 +1765,30 @@ _engine_install_pkg() {
     command -v "$bin" &>/dev/null && enote "${bin}: ready." || warn "${bin}: install may have failed — check the output above."
 }
 
+# DejaVu fonts — the preferred monospace for PDF code blocks. Fonts have no
+# binary to probe, so check the font files (macOS) / fontconfig instead of
+# going through _engine_install_pkg. --with-optional only; never at convert time.
+_dejavu_mono_present() {
+    [[ -f "${HOME}/Library/Fonts/DejaVuSansMono.ttf" || -f /Library/Fonts/DejaVuSansMono.ttf ]] && return 0
+    command -v fc-list &>/dev/null && font_installed "DejaVu Sans Mono"
+}
+_engine_install_dejavu() {
+    _dejavu_mono_present && { enote "DejaVu Sans Mono: already present."; return 0; }
+    enote "installing DejaVu fonts…"
+    case "$(uname -s)" in
+        Darwin)
+            command -v brew &>/dev/null || { warn "Homebrew is required to install fonts — see https://brew.sh"; return 0; }
+            brew install --cask font-dejavu || warn "font-dejavu install failed." ;;
+        Linux)
+            if command -v apt-get &>/dev/null; then sudo apt-get install -y fonts-dejavu || warn "fonts-dejavu install failed."
+            elif command -v dnf &>/dev/null; then sudo dnf install -y dejavu-sans-mono-fonts || warn "dejavu fonts install failed."
+            else warn "no supported package manager (apt/dnf) found to install DejaVu fonts."; return 0; fi
+            fc-cache -f 2>/dev/null || true ;;
+        *) warn "unsupported OS for font install: $(uname -s)" ;;
+    esac
+    _dejavu_mono_present && enote "DejaVu Sans Mono: ready." || warn "DejaVu Sans Mono still not detected — check the output above."
+}
+
 # mermaid CLI (mmdc) is installed via npm (pulls in a headless browser), so it's
 # only attempted under --with-optional, and only when npm is available.
 _engine_install_mermaid() {
@@ -1801,8 +1805,9 @@ _engine_install_mermaid() {
 
 # --setup: install the engine's dependencies. Scoped to --to when given
 # (pdf → +LaTeX, docx → +python3), otherwise installs the full set. pandoc is
-# always installed. Optional tools (rsvg, ImageMagick, fontconfig, mermaid) are
-# installed only with --with-optional (rsvg also when --raster-svg is set).
+# always installed. Optional tools (rsvg, ImageMagick, fontconfig, DejaVu fonts,
+# mermaid) are installed only with --with-optional (rsvg also when --raster-svg
+# is set).
 setup_deps() {
     enote "Setting up holo-convert dependencies…"
     _engine_install_pkg pandoc pandoc pandoc pandoc
@@ -1826,6 +1831,7 @@ setup_deps() {
         _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
         _engine_install_pkg magick     imagemagick imagemagick ImageMagick
         _engine_install_pkg fc-list    fontconfig  fontconfig  fontconfig
+        _engine_install_dejavu
         _engine_install_mermaid
     elif [[ "${RASTER_SVG:-false}" == true ]]; then
         _engine_install_pkg rsvg-convert librsvg librsvg2-bin librsvg2-tools
