@@ -3,11 +3,14 @@
 -- and replaces the code block with an image node pandoc can pass to XeLaTeX.
 --
 -- Requires: mmdc (Mermaid CLI) — https://github.com/mermaid-js/mermaid-cli
+--   holo-convert.sh --with-optional      (installs it via npm), or
 --   npm install -g @mermaid-js/mermaid-cli
 --
 -- mmdc is called with an absolute path to avoid $PATH issues in subprocess.
--- Rendered PNGs are written to a temp directory and cleaned up after pandoc
--- finishes (pandoc handles temp dir lifetime via os.tmpname pattern).
+-- Rendered PNGs go to a per-run directory under the system temp location
+-- (os.tmpname). The filter cannot remove it itself: pandoc's writer reads the
+-- images only after all filters have finished, so the directory is left for
+-- the OS's temp cleanup.
 --
 -- Usage:
 --   pandoc input.md --lua-filter=render-mermaid.lua -o output.pdf
@@ -16,15 +19,20 @@
 -- Checks mise shims first (consistent across macOS and Linux when installed
 -- via mise), then falls back to whatever is on PATH.
 local function find_mmdc()
-    -- mise shim path is consistent regardless of OS or Node install method
-    local mise_shim = os.getenv("HOME") .. "/.local/share/mise/shims/mmdc"
-    local f = io.open(mise_shim, "r")
-    if f then
-        f:close()
-        return mise_shim
+    -- mise shim path is consistent regardless of OS or Node install method.
+    -- HOME can be unset (cron, containers) — skip the shim check then.
+    local home = os.getenv("HOME")
+    if home and home ~= "" then
+        local mise_shim = home .. "/.local/share/mise/shims/mmdc"
+        local f = io.open(mise_shim, "r")
+        if f then
+            f:close()
+            return mise_shim
+        end
     end
     -- Fall back to PATH resolution
     local handle = io.popen("command -v mmdc 2>/dev/null")
+    if not handle then return nil end
     local path = handle:read("*a"):gsub("%s+$", "")
     handle:close()
     return path ~= "" and path or nil
@@ -55,7 +63,7 @@ end
 
 local function render_mermaid(diagram_src, index)
     if not MMDC then
-        return nil, "mmdc not found. Install via mise: add 'npm:@mermaid-js/mermaid-cli' to mise.toml and run 'mise install'."
+        return nil, "mmdc not found — run 'holo-convert.sh --with-optional' (installs mermaid-cli via npm), or: npm install -g @mermaid-js/mermaid-cli"
     end
 
     local dir = ensure_img_dir()
@@ -79,11 +87,17 @@ local function render_mermaid(diagram_src, index)
         .. " 2>&1"
 
     local handle = io.popen(cmd)
-    local output = handle:read("*a")
+    if not handle then
+        return nil, "could not run mmdc for diagram " .. index
+    end
+    local output = handle:read("*a") or ""
     local ok = handle:close()
 
-    if not ok or not io.open(out_file, "r") then
-        return nil, "mmdc failed for diagram " .. index .. ": " .. (output or "")
+    -- Probe for the output file and close the handle (it used to leak).
+    local probe = io.open(out_file, "r")
+    if probe then probe:close() end
+    if not ok or not probe then
+        return nil, "mmdc failed for diagram " .. index .. ": " .. output
     end
 
     return out_file, nil
