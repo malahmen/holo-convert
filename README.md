@@ -55,8 +55,10 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | `--toc-depth N`                                | md→pdf, md→docx | `3`          | Heading levels to include in the TOC.                                                                       |
 | `--title-page` / `--no-title-page`             | md→pdf, md→docx | off          | Prepend a title page (see [Title pages](#title-pages)).                                                     |
 | `--image PATH`                                 | md→pdf, md→docx | —            | Image shown on the title page. Non-PDF-embeddable formats (GIF, WebP, …) are auto-converted to PNG for PDF. |
-| `--concat` / `--no-concat`                     | md→pdf, md→docx | off          | Merge all input files into one document; the first `#` heading becomes the title.                           |
+| `--concat` / `--no-concat`                     | md→pdf, md→docx | off          | Merge all input files into one document; the first `#` heading becomes the title. **Skips the title page and the internal-link reconcile** (the merged document is named after the first input). |
 | `--concat-pagebreak` / `--no-concat-pagebreak` | md→pdf, md→docx | on           | Insert a page break between concatenated files.                                                             |
+| `--fix-links`                                  | md→pdf, md→docx | off          | Also write confident internal anchor-link fixes back into the **source** `.md`. By default only the working copy handed to pandoc is reconciled, so the output resolves and the source stays as authored. |
+| `--no-check-links`                             | md→pdf, md→docx | check on     | Skip the internal anchor-link check/reconcile entirely (needs `python3`; never fatal).                       |
 
 ### Markdown pre-passes (source clean-up)
 
@@ -71,7 +73,7 @@ A flag listed for a format it doesn't apply to is simply ignored.
 
 | Flag                | Default           | Effect                                                                                                                               |
 | ------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `--pdf-engine NAME` | auto              | LaTeX/HTML engine (`xelatex` preferred, then `lualatex`, `pdflatex`, `wkhtmltopdf`, `weasyprint`, `pagedjs-cli`). Must be installed. |
+| `--pdf-engine NAME` | auto              | PDF engine (`xelatex` preferred, then `lualatex`, `pdflatex`, `wkhtmltopdf`, `weasyprint`, `pagedjs-cli`). Must be installed. **HTML engines** (`wkhtmltopdf`/`weasyprint`/`pagedjs-cli`) skip the LaTeX pieces: no `header.tex` code/table styling, no monospace-font file, a plain centered title block instead of the LaTeX template, and pandoc's own `--toc` (placed **above** the title page). Page breaks become an HTML page-break `div`. |
 | `--font NAME`       | pandoc default    | Prose font. Only installed fonts are honored; `none` forces the default.                                                             |
 | `--no-tp-pagenum`   | page number shown | Hide the page number on the title page. (The PDF has no running header/footer, so only the page number is toggleable here.)          |
 
@@ -114,20 +116,20 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | Flag              | Effect                                                                                                                              |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `--setup`         | Install the **core** dependencies (scoped by `--to` if given), then exit — or, if a conversion is also given, install then convert. |
-| `--with-optional` | Also install the **optional** tools (rsvg-convert, ImageMagick, fontconfig, mermaid-cli). Implies `--setup`.                        |
+| `--with-optional` | Also install the **optional** tools (rsvg-convert, ImageMagick, fontconfig, DejaVu fonts, mermaid-cli). Implies `--setup`.          |
 | `-h, --help`      | Print the flag list.                                                                                                                |
 
 ---
 
 ## Configuration
 
-Two config sources sit under `.fcc/` _(copied into a working `./.fcc/` in the current directory on first run, so you can customize them per project)_.
+Two config sources sit under the working `./.fcc/` in the current directory. They are the **only** files there that survive a run: `.fcc/docx/config` (never touched) and `.fcc/title-pages/*` (the bundled `default.*` is seeded once when missing). Everything under `.fcc/pdf/` and `.fcc/docx/` other than `config` is re-synced from the bundle next to the script on every run, so edits there are overwritten.
 
 ### `.fcc/docx/config` — DOCX letterhead defaults
 
 `key=value` lines. \
 **Only affects `md→docx` with `--letterhead`.** \
-Copy `.fcc/docx/config.example` to `.fcc/docx/config` and edit:
+The annotated example is **not** seeded into the working `.fcc/`: copy it from the bundle next to the script, `<script-dir>/.fcc/docx/config.example`, to `./.fcc/docx/config` and edit:
 
 | Key                      | What it sets                  | Values                    |
 | ------------------------ | ----------------------------- | ------------------------- |
@@ -165,7 +167,7 @@ per-file YAML front matter  >  CLI flag  >  .fcc/docx/config  >  built-in defaul
 
 ### `.fcc/title-pages/default.yaml` — title-page template
 
-Used whenever `--title-page` is set. Resolution per source file: \
+Used whenever `--title-page` is set (not in `--concat` mode, which skips the title page). Resolution per source file: \
 `.fcc/title-pages/<flattened-source-path>.yaml` _(specific)_ → `default.yaml` _(fallback)_.
 
 | Key        | What it sets                                                                                                |
@@ -192,8 +194,9 @@ This in turn:
 
 ### `--title-page`
 
-Seeds the bundled template and prepends a title page. For **PDF** it renders the LaTeX `template`, for **DOCX** it builds a native centered image + `Title` heading. \
-If `--toc` is also set, the TOC is placed **after** the title page rather than at the very top of the document.
+Seeds the bundled template and prepends a title page. For **PDF** (LaTeX engines) it renders the LaTeX `template`; for **DOCX**, and for PDF via an HTML engine, it builds a native centered image + title block. \
+If `--toc` is also set, the TOC is placed **after** the title page rather than at the very top of the document (LaTeX engines and DOCX; HTML engines keep pandoc's TOC at the top). \
+Ignored with `--concat`.
 
 ### `--reference` <a name="reference-styles"></a>
 
@@ -214,7 +217,8 @@ Local `.svg` references in the body are embedded only when `--raster-svg` conver
 
 ## Working directory & assets
 
-- On first run in a directory, the canonical `.fcc/` assets are copied to a working `./.fcc/` there, edit those _(config, title-page templates, code theme, filters)_ to customize a specific project.
+- On every run the bundled `.fcc/pdf/*` and `.fcc/docx/*` assets _(filters, code theme, reference docs, post-processors)_ are synced into a working `./.fcc/` in the current directory, **overwriting** local copies so a stale filter never lingers. `monofont.tex` is regenerated there for each `md→pdf` run.
+- Only `./.fcc/docx/config` and `./.fcc/title-pages/*` are yours to edit per project: they are never overwritten (the bundled `default.yaml`/`default.md` title page is seeded only when missing).
 - Output is written to `./output/` (or `-o DIR`). Both `.fcc/` and `output/` are runtime artifacts, keep them out of version control.
 
 ---
@@ -225,13 +229,13 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 
 | Need     | Requirement                                                                                                        |
 | -------- | ------------------------------------------------------------------------------------------------------------------ |
-| Always   | `bash` 4+, `pandoc`                                                                                                |
-| → PDF    | a LaTeX engine (`xelatex` recommended; or lualatex / pdflatex / wkhtmltopdf / weasyprint / pagedjs-cli)            |
+| Always   | `bash` 4+ (3.2 works), `pandoc` **≥ 2.10** — the version is checked at start-up; 3.7+ uses `--syntax-highlighting`, older releases fall back to `--highlight-style` automatically (Debian/Ubuntu apt ship 2.17/3.1, both fine) |
+| → PDF    | a LaTeX engine (`xelatex` recommended; or lualatex / pdflatex). wkhtmltopdf / weasyprint / pagedjs-cli are accepted with reduced styling — see `--pdf-engine` above |
 | → DOCX   | `python3` (standard library only)                                                                                  |
-| Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), `mermaid-cli` (diagrams) |
+| Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), DejaVu fonts (monospace for PDF code; Courier New otherwise), `mermaid-cli` (diagrams) |
 
 - `--setup` installs the **core** via the OS package manager _(Homebrew on macOS, apt/dnf on Linux)_, scoped to `--to` when given.
-- `--with-optional` additionally installs the **optional** tools _(rsvg-convert, ImageMagick, fontconfig, and - via npm - mermaid-cli)_; it implies `--setup`.
+- `--with-optional` additionally installs the **optional** tools _(rsvg-convert, ImageMagick, fontconfig, the DejaVu fonts, and - via npm - mermaid-cli)_; it implies `--setup`. Fonts are never installed during a conversion: without DejaVu/Noto/Liberation Mono, PDF code falls back to Courier New with a hint.
 - On macOS, `sips` (built in) covers GIF→PNG without ImageMagick.
 
 ---
