@@ -737,7 +737,10 @@ detect_docx_mono() {
 
 # -----------------------------------------------------------------------------
 # Collision-safe output filename
-# Flattens path separators to underscores when a name collision is detected.
+# Flattens path separators to underscores when another INPUT of this run
+# shares the basename (docs/guide.md + api/guide.md). A file already sitting
+# in the output dir is NOT a collision — re-running overwrites it, so the
+# output name stays stable instead of drifting to docs_guide.pdf.
 #
 # Arguments:
 #   $1 — relative source path (e.g. "docs/guides/index.md")
@@ -755,28 +758,25 @@ resolve_output_path() {
     local base
     base=$(basename "$source_path" ".${SOURCE_FORMAT}")
 
-    local candidate="${out_dir}/${base}.${ext}"
+    # How many of this run's inputs reduce to the same basename?
+    local dupes
+    dupes=$(awk -v b="$base" -v e=".${SOURCE_FORMAT}" '
+        NF { f = $0; sub(/.*\//, "", f)
+             if (length(f) > length(e) && substr(f, length(f) - length(e) + 1) == e)
+                 f = substr(f, 1, length(f) - length(e))
+             if (f == b) n++ }
+        END { print n + 0 }' <<< "${SELECTED_FILES:-}")
 
-    if [[ ! -f "$candidate" ]]; then
-        OUTPUT_FILE="$candidate"
-        return
+    if (( dupes > 1 )); then
+        local flat_name
+        flat_name=$(echo "${source_path%.${SOURCE_FORMAT}}" | tr '/' '_')
+        info "Name collision for '${base}.${ext}' (${dupes} inputs share it) — using path-derived name: ${flat_name}.${ext}"
+        OUTPUT_FILE="${out_dir}/${flat_name}.${ext}"
+    else
+        OUTPUT_FILE="${out_dir}/${base}.${ext}"
     fi
-
-    # Collision — check if another source file would also produce this name
-    local flat_name
-    flat_name=$(echo "${source_path%.${SOURCE_FORMAT}}" | tr '/' '_')
-    local flat_candidate="${out_dir}/${flat_name}.${ext}"
-
-    if [[ ! -f "$flat_candidate" ]]; then
-        info "Name collision for '${base}.${ext}' — using path-derived name: ${flat_name}.${ext}"
-        OUTPUT_FILE="$flat_candidate"
-        return
-    fi
-
-    # Flat name also exists — overwrite (predictable CLI behaviour).
-    enote "Output exists — overwriting: ${flat_candidate}"
-    OUTPUT_FILE="$flat_candidate"
-    return
+    [[ -f "$OUTPUT_FILE" ]] && enote "Output exists — overwriting: ${OUTPUT_FILE}"
+    return 0
 }
 
 # -----------------------------------------------------------------------------
