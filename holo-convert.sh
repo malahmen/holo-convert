@@ -12,7 +12,7 @@
 #   holo-convert.sh --help
 #
 # Dependencies (checked, not installed — see --help / README, or run --setup):
-#   always: bash 4+, pandoc      PDF: a LaTeX engine (xelatex)      DOCX: python3
+#   always: bash 4+, pandoc 2.10+   PDF: a LaTeX engine (xelatex)   DOCX: python3
 #   optional (--with-optional): rsvg-convert (SVG), ImageMagick (GIF),
 #     fontconfig (fonts), mermaid-cli (diagrams); sips is built in on macOS
 # Config: .fcc/pdf/header.tex, .fcc/title-pages/*.{yaml,md} (auto-seeded).
@@ -36,6 +36,8 @@ TITLE_PAGES_DIR=".fcc/title-pages"
 OUTPUT_DIR="./output"
 DEFAULT_DEPTH=3
 
+PANDOC_MIN="2.10"         # oldest pandoc supported (Lua Table API in widen-tables.lua)
+PANDOC_VERSION=""         # detected once by guard_deps (e.g. "3.1.11")
 SETUP_DEPS=false          # --setup: install dependencies (explicit, opt-in)
 WITH_OPTIONAL=false       # --with-optional: also install the optional tools
 MD_VARIANT="gfm"          # docx→md output variant (overridable via --md-variant)
@@ -822,7 +824,7 @@ convert_md_to_pdf() {
     # Add optional assets only when present, so a missing bundle degrades
     # gracefully instead of failing the whole conversion.
     [[ -f "${FCC_DIR}/pdf/p10k.theme" ]] && \
-        pandoc_args+=(--syntax-highlighting="${FCC_DIR}/pdf/p10k.theme")
+        pandoc_args+=("$(highlight_theme_arg "${FCC_DIR}/pdf/p10k.theme")")
     local lf lf_path
     for lf in widen-tables.lua render-mermaid.lua pagebreak.lua; do
         lf_path="$(resolve_lua_filter "$lf")"
@@ -996,7 +998,7 @@ convert_md_to_docx() {
     if is_builtin_docx_ref; then
         local theme_path
         theme_path="$(resolve_docx_asset "p10k.theme")"
-        [[ -n "$theme_path" ]] && pandoc_args+=(--syntax-highlighting="$theme_path")
+        [[ -n "$theme_path" ]] && pandoc_args+=("$(highlight_theme_arg "$theme_path")")
     fi
 
     run_step "Converting $(basename "$input_file") → $(basename "$output_file") ..." \
@@ -1805,11 +1807,44 @@ setup_deps() {
     enote "Setup complete."
 }
 
+# Detect the pandoc version once (first line of `pandoc --version`, e.g.
+# "pandoc 3.1.11" → "3.1.11"). Read into a variable first: piping to head
+# under pipefail can fail on SIGPIPE.
+detect_pandoc_version() {
+    local out=""
+    out="$(pandoc --version 2>/dev/null)" || out=""
+    read -r _ PANDOC_VERSION _ <<< "${out%%$'\n'*}" || true
+    [[ "$PANDOC_VERSION" =~ ^[0-9]+(\.[0-9]+)* ]] || PANDOC_VERSION=""
+}
+
+# pandoc_at_least MAJOR MINOR — is the detected pandoc >= MAJOR.MINOR? An
+# unknown version counts as old, so the older (always-valid) flags are used.
+pandoc_at_least() {
+    local v="$PANDOC_VERSION" maj min
+    [[ -n "$v" ]] || return 1
+    maj="${v%%.*}"; min=0
+    [[ "$v" == *.* ]] && { min="${v#*.}"; min="${min%%.*}"; }
+    (( maj > $1 || (maj == $1 && min >= $2) ))
+}
+
+# The flag that points pandoc at a syntax theme file: --syntax-highlighting
+# replaced --highlight-style in pandoc 3.7 (Debian/Ubuntu apt ship 2.17/3.1).
+highlight_theme_arg() {
+    if pandoc_at_least 3 7; then printf -- '--syntax-highlighting=%s' "$1"
+    else printf -- '--highlight-style=%s' "$1"; fi
+}
+
 # Guardrail dependency checks — verify presence, never install. Sets
 # AVAILABLE_ENGINES for md->pdf. Uses gum-free output (edie/enote).
 guard_deps() {
     command -v pandoc &>/dev/null || edie \
         "pandoc not found — install it (https://pandoc.org/installing.html), or run this tool via scomp-link which can install it for you."
+    detect_pandoc_version
+    if [[ -z "$PANDOC_VERSION" ]]; then
+        warn "could not read the pandoc version — need ${PANDOC_MIN}+; continuing anyway."
+    elif ! pandoc_at_least "${PANDOC_MIN%%.*}" "${PANDOC_MIN#*.}"; then
+        edie "pandoc ${PANDOC_VERSION} is too old — need ${PANDOC_MIN}+ (https://pandoc.org/installing.html)."
+    fi
     case "${SOURCE_FORMAT}->${OUTPUT_FORMAT}" in
         "md->pdf")
             local found=() e
@@ -1827,7 +1862,7 @@ guard_deps() {
         "docx->md") : ;;
         *) edie "conversion '${SOURCE_FORMAT} -> ${OUTPUT_FORMAT}' is not supported." ;;
     esac
-    enote "dependencies OK for ${SOURCE_FORMAT}->${OUTPUT_FORMAT}."
+    enote "dependencies OK for ${SOURCE_FORMAT}->${OUTPUT_FORMAT} (pandoc ${PANDOC_VERSION:-?})."
 }
 
 # Parse engine flags into the same globals the select_* prompts would set.
