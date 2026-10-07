@@ -213,6 +213,18 @@ Ignored with `--concat`.
 For PDF, images pandoc/xelatex can't embed directly (GIF, WebP, …) are auto-converted to PNG. \
 Local `.svg` references in the body are embedded only when `--raster-svg` converts them to PNG first.
 
+### Line breaks (`<br>`)
+
+`<br>`, `<br/>` and `<br />` _(any case)_ become real line breaks in PDF and DOCX, so a table cell can hold several lines:
+
+```markdown
+| A    | B                |
+| :--- | :--------------- |
+| text | text <br> text   |
+```
+
+Without it, pandoc keeps `<br>` as raw HTML, which the LaTeX and Word writers drop, so the cell would read `text  text`. The same applies to a `<br>` in a paragraph.
+
 ---
 
 ## Working directory & assets
