@@ -217,7 +217,7 @@ EOF
 ensure_fcc_pdf_assets() {
     local assets=("$@")
     if [[ ${#assets[@]} -eq 0 ]]; then
-        assets=(header.tex p10k.theme widen-tables.lua render-mermaid.lua pagebreak.lua)
+        assets=(header.tex p10k.theme widen-tables.lua render-mermaid.lua pagebreak.lua br.lua)
     fi
 
     local pdf_config_dir="${FCC_DIR}/pdf"
@@ -328,7 +328,7 @@ ensure_fcc_docx_assets() {
     mkdir -p "$docx_dir"
 
     local a dest
-    for a in reference.docx reference-plain.docx stamp_docx_tokens.py docx_layout.py caption_figures.py check_links.py pagebreak.lua render-mermaid.lua p10k.theme; do
+    for a in reference.docx reference-plain.docx stamp_docx_tokens.py docx_layout.py caption_figures.py check_links.py pagebreak.lua render-mermaid.lua br.lua p10k.theme; do
         dest="${docx_dir}/${a}"
         if [[ -f "${src}/${a}" ]]; then
             if [[ ! -f "$dest" ]] || ! cmp -s "${src}/${a}" "$dest"; then
@@ -844,7 +844,8 @@ convert_md_to_pdf() {
     [[ -f "${FCC_DIR}/pdf/p10k.theme" ]] && \
         pandoc_args+=("$(highlight_theme_arg "${FCC_DIR}/pdf/p10k.theme")")
     local lf lf_path
-    for lf in widen-tables.lua render-mermaid.lua pagebreak.lua; do
+    # br.lua: <br> (e.g. inside a table cell) → a real line break; LaTeX drops raw HTML.
+    for lf in br.lua widen-tables.lua render-mermaid.lua pagebreak.lua; do
         lf_path="$(resolve_lua_filter "$lf")"
         [[ -n "$lf_path" ]] && pandoc_args+=(--lua-filter="$lf_path")
     done
@@ -995,7 +996,7 @@ convert_md_to_docx() {
     # separate from the PDF assets. Falls back to the bundle so a missing copy
     # never silently drops \newpage from the output.
     local lf lf_path
-    for lf in pagebreak.lua render-mermaid.lua; do
+    for lf in br.lua pagebreak.lua render-mermaid.lua; do
         lf_path="$(resolve_docx_asset "$lf")"
         [[ -n "$lf_path" ]] && pandoc_args+=(--lua-filter="$lf_path")
     done
