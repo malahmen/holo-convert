@@ -328,7 +328,7 @@ ensure_fcc_docx_assets() {
     mkdir -p "$docx_dir"
 
     local a dest
-    for a in reference.docx reference-plain.docx stamp_docx_tokens.py docx_layout.py caption_figures.py check_links.py pagebreak.lua render-mermaid.lua br.lua p10k.theme; do
+    for a in reference.docx reference-plain.docx stamp_docx_tokens.py docx_layout.py caption_figures.py check_links.py pagebreak.lua render-mermaid.lua br.lua widen-tables.lua p10k.theme; do
         dest="${docx_dir}/${a}"
         if [[ -f "${src}/${a}" ]]; then
             if [[ ! -f "$dest" ]] || ! cmp -s "${src}/${a}" "$dest"; then
@@ -996,7 +996,9 @@ convert_md_to_docx() {
     # separate from the PDF assets. Falls back to the bundle so a missing copy
     # never silently drops \newpage from the output.
     local lf lf_path
-    for lf in br.lua pagebreak.lua render-mermaid.lua; do
+    # widen-tables.lua gives every table relative column widths (as for PDF),
+    # so Word lays it out fixed-width; docx_layout.py then fits it to the page.
+    for lf in br.lua widen-tables.lua pagebreak.lua render-mermaid.lua; do
         lf_path="$(resolve_docx_asset "$lf")"
         [[ -n "$lf_path" ]] && pandoc_args+=(--lua-filter="$lf_path")
     done

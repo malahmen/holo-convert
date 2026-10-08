@@ -21,3 +21,17 @@ function RawInline(el)
     return pandoc.LineBreak()
   end
 end
+
+-- `text <br> text` leaves a Space on each side of the break. LaTeX ignores
+-- them, but Word keeps the one after it, so the second line started with a
+-- blank (" text"). Drop spaces that touch a line break. Inlines runs after the
+-- RawInline pass above, so it sees the new LineBreaks.
+function Inlines(inls)
+  for i = #inls, 1, -1 do
+    if inls[i] and inls[i].t == "LineBreak" then
+      if inls[i + 1] and inls[i + 1].t == "Space" then inls:remove(i + 1) end
+      if inls[i - 1] and inls[i - 1].t == "Space" then inls:remove(i - 1) end
+    end
+  end
+  return inls
+end

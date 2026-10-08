@@ -203,7 +203,7 @@ Ignored with `--concat`.
 | Value               | Result                                                                                           |
 | ------------------- | ------------------------------------------------------------------------------------------------ |
 | `letterhead`        | Running header + footer (see above). Sets letterhead mode.                                       |
-| `plain` _(default)_ | The built-in styling (shaded code blocks, aligned TOC, table banding) with **no** header/footer. |
+| `plain` _(default)_ | The built-in styling (shaded code blocks, aligned TOC, table banding) with **no** header/footer. Page size and margins as for `letterhead` (0.75" side margins). |
 | `none`              | Pandoc's default DOCX styling.                                                                   |
 | `PATH`              | Your own `.docx` as the pandoc reference document.                                               |
 
@@ -212,6 +212,10 @@ Ignored with `--concat`.
 `--image` sets the title-page image; `--logo` sets the header logo. \
 For PDF, images pandoc/xelatex can't embed directly (GIF, WebP, …) are auto-converted to PNG. \
 Local `.svg` references in the body are embedded only when `--raster-svg` converts them to PNG first.
+
+### Tables
+
+Tables always span the full text width, in PDF and DOCX alike: columns without explicit widths are shared out evenly, and a first column made mostly of `code` is widened. In DOCX the column widths are fitted to the page's real text width (built-in references), so Word and Pages no longer stop a table short of the right margin.
 
 ### Line breaks (`<br>`)
 
