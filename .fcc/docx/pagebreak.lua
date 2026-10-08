@@ -14,7 +14,9 @@
 --
 -- The marker is honoured whether it sits in its own paragraph (blank lines
 -- around it) OR on its own line inside a paragraph (adjacent to text) — in the
--- latter case the paragraph is split around the break.
+-- latter case the paragraph is split around the break. pandoc also parses a
+-- mid-sentence `\newpage` as raw TeX, so that breaks (and splits) there too.
+-- Inside code (fenced or inline) it is plain text and left alone.
 
 local function is_marker(s)
     s = (s or ""):gsub("%s+$", ""):gsub("^%s+", "")

@@ -229,6 +229,25 @@ Tables always span the full text width, in PDF and DOCX alike: columns without e
 
 Without it, pandoc keeps `<br>` as raw HTML, which the LaTeX and Word writers drop, so the cell would read `text  text`. The same applies to a `<br>` in a paragraph.
 
+### Page breaks (`\newpage`)
+
+Put `\newpage` (or `\pagebreak`, `\newpage{}`, `\pagebreak{}`) on a line of its own where the next page should start:
+
+```markdown
+End of the first section.
+
+\newpage
+
+# Second section
+```
+
+It becomes a real page break in every output: `\newpage` in LaTeX/PDF, a Word page break in DOCX, and a page-break `<div>` for the HTML PDF engines (`wkhtmltopdf`, `weasyprint`, `pagedjs-cli`). In DOCX, a heading that follows the break starts the new page with no blank line above it.
+
+- **Blank lines are optional.** A marker on its own line inside a paragraph splits the paragraph there.
+- **It is not limited to its own line.** A `\newpage` in the middle of a sentence also breaks the page there, so keep it on its own line.
+- **Code stays literal.** In a fenced code block or in inline code (`` `\newpage` ``) it is shown as text, never as a break.
+- **The engine inserts the same marker itself:** between files with `--concat` _(unless `--no-concat-pagebreak`)_, after the title page, and after a title-page table of contents.
+
 ---
 
 ## Working directory & assets
