@@ -1248,13 +1248,37 @@ apply_svg_raster() {
 
     local media="${OUTPUT_DIR}/media"; mkdir -p "$media"
     local svgs
-    svgs=$(grep -oiE '!\[[^]]*\]\([^)]*\.svg\)' "$tmp_file" \
-        | sed -E 's/^!\[[^]]*\]\(([^)]+)\).*/\1/' | sort -u)
+    # The detection grep above matches '.svg' anywhere in the target, but this
+    # extraction used to require '.svg)' immediately — so an image written
+    # ![x](d.svg "A title") or ![x](d.svg#frag) was detected and then not
+    # extracted. grep found nothing, exited 1, and under 'set -o pipefail'
+    # the assignment failed: the run died rc 1 with no message at all, leaving
+    # the .tmp.md working copy behind.
+    #
+    # Now the target may carry a title or a fragment, the first
+    # whitespace-delimited token is taken as the path (pandoc's own rule), an
+    # angle-bracket target is unwrapped, and a grep that matches nothing is
+    # an ordinary outcome rather than a fatal one.
+    svgs=$(grep -oiE '!\[[^]]*\]\([^)]*\.svg[^)]*\)' "$tmp_file" \
+        | sed -E 's/^!\[[^]]*\]\(([^)]+)\).*/\1/' \
+        | sed -E 's/[[:space:]].*$//; s/^<//; s/>$//' \
+        | sort -u) || true
+    if [[ -z "$svgs" ]]; then
+        warn "Found an .svg reference this cannot parse as an image target — leaving it as-is."
+        return 0
+    fi
 
     local svg abs png i=0
     while IFS= read -r svg; do
         [[ -z "$svg" ]] && continue
         [[ "$svg" =~ ^https?:// ]] && continue                 # leave remote SVGs
+        # A fragment would survive the path rewrite as 'x.png#frag', which is
+        # a path no renderer resolves. Left alone and said out loud, rather
+        # than rewritten into something broken.
+        if [[ "$svg" == *"#"* ]]; then
+            warn "SVG target carries a #fragment, which cannot be rasterised: ${svg} — leaving it as-is."
+            continue
+        fi
         local expanded="${svg/#\~/$HOME}"
         if [[ "$expanded" = /* ]]; then abs="$expanded"; else abs="${srcdir}/${expanded}"; fi
         abs="$(cd "$(dirname "$abs")" 2>/dev/null && pwd)/$(basename "$abs")"
@@ -1550,8 +1574,16 @@ apply_title_page() {
                 warn "Title-page image can't be embedded in PDF (unsupported format, no converter): ${image_abs} — skipping."
             fi
         fi
+        # The template is TeX, so the title is escaped FOR TeX first. Raw, a
+        # title containing & # % $ _ { } ~ ^ or a backslash reached xelatex as
+        # markup: '%' comments out the rest of the line, '&' and '#' are
+        # alignment and argument characters, and a backslash starts a control
+        # sequence. Neither outcome was an error — the title page rendered
+        # with raw TeX on page 1 (rc 0), or an escaped quote in the front
+        # matter killed the run with "Undefined control sequence".
+        local title_tex; title_tex="$(latex_escape_text "$title")"
         # awk gsub eats single backslashes in replacement strings — double first
-        local title_awk="${title//\\/\\\\}"
+        local title_awk="${title_tex//\\/\\\\}"
         local image_awk="${image_md//\\/\\\\}"
         rendered=$(awk \
             -v title="$title_awk" \
@@ -1618,6 +1650,26 @@ preprocess_md_tmp() {
     return 0
 }
 
+# Escape text for use in the LaTeX title-page template.
+#
+# Backslash goes through a placeholder because its replacement contains braces,
+# which the brace rules below would otherwise escape a second time.
+latex_escape_text() {
+    local s="${1-}"
+    s="${s//\\/$'\001'}"
+    s="${s//&/\\&}"
+    s="${s//%/\\%}"
+    s="${s//\$/\\\$}"
+    s="${s//\#/\\#}"
+    s="${s//_/\\_}"
+    s="${s//\{/\\\{}"
+    s="${s//\}/\\\}}"
+    s="${s//\~/\\textasciitilde\{\}}"
+    s="${s//^/\\textasciicircum\{\}}"
+    s="${s//$'\001'/\\textbackslash\{\}}"
+    printf '%s' "$s"
+}
+
 # Combine every selected md file into one working copy and convert it once.
 # The first "# H1" becomes the document Title (via front matter); files are
 # separated by an optional page break. Output is named after the first file.
@@ -1632,7 +1684,10 @@ run_concat() {
         [[ -z "$first_input" ]] && first_input="$input_file"
 
         local part="${OUTPUT_DIR}/_part.tmp.md"
-        cp "$input_file" "$part"
+        # Checked in run_conversions already; this catches a file that goes
+        # away in between. Fatal here, not skipped: see the --concat note.
+        cp "$input_file" "$part" \
+            || edie "--concat: ${input_file} became unreadable mid-run — refusing to write a document that is missing it."
         preprocess_md_tmp "$part" "$input_file" false
 
         if (( idx == 1 )); then
@@ -1672,6 +1727,48 @@ run_conversions() {
     local failed=0
     local succeeded=0
 
+    # Every input is checked BEFORE any conversion starts, and the unusable
+    # ones are reported together instead of being discovered one at a time
+    # mid-run. Inputs come straight from argv with no existence check, so a
+    # typo is an ordinary case, and it produced two different bugs:
+    #
+    #   batch   'cp' on a missing input failed under errexit, so the run died
+    #           at that file — rc 1, NO summary printed, and every later input
+    #           silently left unconverted;
+    #   concat  run_concat is invoked as an `if` condition, which disables
+    #           errexit inside it, so the same failed 'cp' merely continued the
+    #           loop: the input was dropped from the document and the run
+    #           reported "1 succeeded, 0 failed".
+    local usable=() unusable=() _f
+    while IFS= read -r _f; do
+        [[ -z "$_f" ]] && continue
+        if   [[ -d "$_f" ]];   then unusable+=("${_f} (is a directory)")
+        elif [[ ! -e "$_f" ]]; then unusable+=("${_f} (does not exist)")
+        elif [[ ! -f "$_f" ]]; then unusable+=("${_f} (not a regular file)")
+        elif [[ ! -r "$_f" ]]; then unusable+=("${_f} (not readable)")
+        else usable+=("$_f"); fi
+    done <<< "$SELECTED_FILES"
+
+    if (( ${#unusable[@]} )); then
+        local _u
+        for _u in ${unusable[@]+"${unusable[@]}"}; do warn "cannot convert ${_u}"; done
+        # --concat refuses outright. A dropped input does not fail the
+        # document, it silently changes it, and the result looks complete —
+        # there is no later point at which anyone would notice.
+        if [[ "$CONCAT" == "true" && "$SOURCE_FORMAT" == "md" ]]; then
+            edie "--concat needs every input: ${#unusable[@]} of $(( ${#usable[@]} + ${#unusable[@]} )) cannot be read."
+        fi
+        # A batch carries on with the rest. They are counted as failures, so
+        # the summary and the exit status both report them.
+        failed=${#unusable[@]}
+    fi
+    if (( ${#usable[@]} == 0 )); then
+        echo ""
+        enote "Conversion complete — 0 succeeded, ${failed} failed."
+        return 1
+    fi
+    SELECTED_FILES="$(printf '%s\n' ${usable[@]+"${usable[@]}"})"
+
     if [[ "$CONCAT" == "true" && "$SOURCE_FORMAT" == "md" ]]; then
         if run_concat; then succeeded=1; else failed=1; fi
     else
@@ -1687,7 +1784,10 @@ run_conversions() {
                 local base
                 base=$(basename "$input_file" ".md")
                 tmp_file="${OUTPUT_DIR}/${base}.tmp.md"
-                cp "$input_file" "$tmp_file"
+                if ! cp "$input_file" "$tmp_file"; then
+                    warn "cannot read ${input_file} — skipping it."
+                    failed=$(( failed + 1 )); rm -f "$tmp_file"; continue
+                fi
                 effective_file="$tmp_file"
                 preprocess_md_tmp "$tmp_file" "$input_file" true
                 # Reconcile AFTER the pre-passes: substitutions can change a
