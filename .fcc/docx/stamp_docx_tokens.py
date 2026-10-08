@@ -54,7 +54,14 @@ def stamp_core_props(xml: str, title: str, author: str) -> str:
         val = xml_escape(val)
         pat = re.compile(rf"<{tag}>.*?</{tag}>", re.S)
         if pat.search(x):
-            return pat.sub(f"<{tag}>{val}</{tag}>", x, count=1)
+            # A FUNCTION, not a replacement string: re.sub interprets
+            # backslashes in a replacement string, so a title holding one —
+            # a Windows path, a LaTeX fragment — raised re.error "bad escape"
+            # and took the whole stamper down, leaving every {{TOKEN}} in the
+            # letterhead unreplaced. xml_escape does not touch backslashes,
+            # and should not: they are literal in XML. The two logo
+            # substitutions below already pass functions for this reason.
+            return pat.sub(lambda _m: f"<{tag}>{val}</{tag}>", x, count=1)
         return x.replace("</cp:coreProperties>", f"<{tag}>{val}</{tag}></cp:coreProperties>")
     return set_tag(set_tag(xml, "dc:title", title), "dc:creator", author)
 
