@@ -215,7 +215,7 @@ Local `.svg` references in the body are embedded only when `--raster-svg` conver
 
 ### Tables
 
-Tables always span the full text width, in PDF and DOCX alike: columns without explicit widths are shared out evenly, and a first column made mostly of `code` is widened. In DOCX the column widths are fitted to the page's real text width (built-in references), so Word and Pages no longer stop a table short of the right margin.
+Tables always span the full text width, in PDF and DOCX alike: columns without explicit widths are shared out evenly. A first column that is an identifier list (most of its cells are entirely `code`) is widened to fit its longest identifier, up to half the table, without pushing any other column below 10%; a first column that merely contains some code is left alone. In DOCX the column widths are fitted to the page's real text width (built-in references), so Word and Pages no longer stop a table short of the right margin.
 
 ### Line breaks (`<br>`)
 
