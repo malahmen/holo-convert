@@ -34,7 +34,6 @@ CANONICAL_FCC="${SCRIPT_DIR}/.fcc"
 FCC_DIR=".fcc"
 TITLE_PAGES_DIR=".fcc/title-pages"
 OUTPUT_DIR="./output"
-DEFAULT_DEPTH=3
 
 PANDOC_MIN="2.10"         # oldest pandoc supported (Lua Table API in widen-tables.lua)
 PANDOC_VERSION=""         # detected once by guard_deps (e.g. "3.1.11")
@@ -85,7 +84,6 @@ DOCX_DATE=""
 DOCX_LOGO=""
 
 # Title-page image prompt cache (so batch runs ask at most once)
-TITLE_IMG_ASKED=false
 TITLE_IMG_CACHE=""
 
 
@@ -214,6 +212,10 @@ _write_basic_header() {
 EOF
 }
 
+# shellcheck disable=SC2120
+# The argument list is optional by design: callers that want the default set
+# pass nothing, and both current call sites do. SC2120 reads that as a
+# mistake.
 ensure_fcc_pdf_assets() {
     local assets=("$@")
     if [[ ${#assets[@]} -eq 0 ]]; then
@@ -2062,7 +2064,7 @@ parse_args() {
             --toc-depth)           TOC_DEPTH="$2"; shift 2 ;;
             --title-page)          USE_TITLE_PAGE=true; shift ;;
             --no-title-page)       USE_TITLE_PAGE=false; shift ;;
-            --image)               TITLE_IMG_CACHE="$2"; TITLE_IMG_ASKED=true; shift 2 ;;
+            --image)               TITLE_IMG_CACHE="$2"; shift 2 ;;
             --substitutions)       APPLY_SUBSTITUTIONS=true; shift ;;
             --no-substitutions)    APPLY_SUBSTITUTIONS=false; shift ;;
             --strip-rules)         STRIP_RULES=true; shift ;;
