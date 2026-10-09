@@ -318,3 +318,7 @@ distribution, and a conversion that produces a PDF is checked by running one.
 `holo-convert.sh` is intentionally UI-free and self-contained: flags in, files out, clear guardrail errors when a dependency is missing. \
 That keeps it easy to script, test, and embed. \
 The interactive experience is a separate concern, this repo is just the engine.
+
+## License
+
+[MIT](LICENSE) © 2026 malahmen.
