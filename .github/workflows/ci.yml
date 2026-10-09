@@ -1,0 +1,42 @@
+name: ci
+
+# The one test here needs pandoc and nothing else — no LaTeX, no network. The
+# PDF and DOCX paths proper are not covered: they need a TeX toolchain, and
+# the failures worth catching in them are visual.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: pandoc
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pandoc
+          pandoc --version | head -1
+
+      - name: Versions
+        run: |
+          bash --version | head -1
+          shellcheck --version | sed -n 2p
+
+      - name: shellcheck
+        run: shellcheck -S warning holo-convert.sh tests/widen-tables.sh
+
+      - name: Python helpers compile
+        # The .fcc/ scripts do the DOCX work and are invoked by the engine, so
+        # a syntax error in one surfaces as a warned-about post-step rather
+        # than a failure. Catch it here instead.
+        run: python3 -m compileall -q .fcc
+
+      - name: tests
+        run: tests/widen-tables.sh
