@@ -30,7 +30,9 @@ jobs:
           shellcheck --version | sed -n 2p
 
       - name: shellcheck
-        run: shellcheck -S warning holo-convert.sh tests/widen-tables.sh
+        # Globbed, not listed: a named list quietly stops covering the next
+        # test file somebody adds.
+        run: shellcheck -S warning holo-convert.sh tests/*.sh
 
       - name: Python helpers compile
         # The .fcc/ scripts do the DOCX work and are invoked by the engine, so
@@ -39,4 +41,4 @@ jobs:
         run: python3 -m compileall -q .fcc
 
       - name: tests
-        run: tests/widen-tables.sh
+        run: tests/run-all.sh

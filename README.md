@@ -271,7 +271,23 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 | → DOCX   | `python3` (standard library only)                                                                                  |
 | Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), DejaVu fonts (monospace for PDF code; Courier New otherwise), `mermaid-cli` (diagrams) |
 
-- `--setup` installs the **core** via the OS package manager _(Homebrew on macOS, apt/dnf on Linux)_, scoped to `--to` when given.
+- `--setup` installs the **core** via whatever this host can actually use, scoped to `--to` when given:
+
+  | Host | Uses |
+  | --- | --- |
+  | macOS | Homebrew |
+  | Debian/Ubuntu | `apt-get` |
+  | Fedora, RHEL | `dnf` |
+  | **ostree desktops** (Fedora Silverblue/Kinoite, **Bazzite**) | Homebrew if installed, else `rpm-ostree install --apply-live` |
+  | anything else with Homebrew | Homebrew |
+
+  On an ostree host `/usr` is **read-only**, so `dnf` cannot install even though
+  `/usr/bin/dnf` exists — which is why the check is "can this host install?"
+  before "is dnf on `PATH`?", and why Homebrew is preferred there: a writable
+  prefix, no `sudo`, no change to the host image, no reboot. `rpm-ostree` layers
+  the package onto the image instead and says so before doing it. With neither
+  available, `--setup` names both options rather than failing inside a package
+  manager.
 - `--with-optional` additionally installs the **optional** tools _(rsvg-convert, ImageMagick, fontconfig, the DejaVu fonts, and - via npm - mermaid-cli)_; it implies `--setup`. Fonts are never installed during a conversion: without DejaVu/Noto/Liberation Mono, PDF code falls back to Courier New with a hint.
 - On macOS, `sips` (built in) covers GIF→PNG without ImageMagick.
 
@@ -282,6 +298,16 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 ```sh
 tests/widen-tables.sh
 ```
+
+```sh
+tests/run-all.sh          # both files; skips what the host cannot run
+```
+
+**14 checks** in `tests/pkg-manager.sh` over the `--setup` host selection above,
+driven against a fabricated `PATH` and a fake ostree marker — so hosts this
+machine is not can still be checked, and nothing is installed. The case it
+exists for is the one that was broken: `dnf` present *and* the host immutable
+must not choose `dnf`.
 
 **8 checks** over `.fcc/pdf/widen-tables.lua`, the filter that decides table
 column widths. It needs **pandoc and nothing else** — no LaTeX, no network —
@@ -306,9 +332,9 @@ pandoc's native AST, not by eyeballing a PDF.
 | Step | What |
 | --- | --- |
 | `pandoc` | `apt-get install pandoc` — the suite's only dependency |
-| `shellcheck` | `-S warning` on `holo-convert.sh` and the suite |
+| `shellcheck` | `-S warning` on `holo-convert.sh` and `tests/*.sh` — globbed, so the next test file is covered automatically |
 | Python helpers | `python3 -m compileall -q .fcc` — the DOCX stampers are syntax-checked, not run |
-| tests | `tests/widen-tables.sh` |
+| tests | `tests/run-all.sh` |
 
 No LaTeX in CI, so the PDF path is not exercised there. It needs a TeX
 distribution, and a conversion that produces a PDF is checked by running one.
