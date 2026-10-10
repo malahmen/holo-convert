@@ -1895,21 +1895,83 @@ By default (no --setup) engine dependencies are CHECKED but never installed.
 EOF
 }
 
-# Install one package via the OS package manager (macOS brew, Linux apt/dnf).
-# Args: check-bin brew-pkg apt-pkg dnf-pkg [cask]. Gum-free; sudo on Linux.
+# _engine_host_immutable — 0 when the OS image is read-only, 1 otherwise.
+#
+# This is NOT `[[ -w /usr ]]`. That test is false for an unprivileged user on
+# EVERY normal Linux — /usr is root-owned — so it would report an immutable
+# host everywhere and send Debian and Fedora down the wrong branch. The ostree
+# marker is the definitive signal; the mount option is the fallback for an
+# image-based host that is not ostree.
+#
+# $HC_OSTREE_MARKER is a test seam: the suite points it at a file it creates,
+# because there is no way to make a runner immutable on demand.
+_engine_host_immutable() {
+    [[ -e "${HC_OSTREE_MARKER:-/run/ostree-booted}" ]] && return 0
+    command -v findmnt &>/dev/null || return 1
+    local opts
+    opts="$(findmnt -no OPTIONS --target /usr 2>/dev/null || true)"
+    case ",${opts}," in *,ro,*) return 0 ;; esac
+    return 1
+}
+
+# _engine_pkg_manager — which installer this host can actually use, as a bare
+# word. Printed rather than acted on, so the choice is testable without
+# installing anything.
+#
+# The order matters, and the old order was the bug. It asked "is dnf on PATH?"
+# before "can this host install at all", and on an ostree desktop (Fedora
+# Silverblue/Kinoite, Bazzite) /usr/bin/dnf EXISTS while /usr is read-only — so
+# it picked, every time, the one branch guaranteed to fail, and failed inside
+# the package manager rather than saying what was wrong. Homebrew sitting right
+# there in a writable prefix was never considered, because brew was Darwin-only.
+_engine_pkg_manager() {
+    local os
+    os="$(uname -s)"
+    if [[ "$os" == Darwin ]]; then
+        command -v brew &>/dev/null && { printf 'brew'; return 0; }
+        printf 'none-darwin'; return 1
+    fi
+    [[ "$os" == Linux ]] || { printf 'unsupported-os'; return 1; }
+    if _engine_host_immutable; then
+        # brew first: a writable prefix, no sudo, no image change, no reboot.
+        command -v brew &>/dev/null       && { printf 'brew'; return 0; }
+        command -v rpm-ostree &>/dev/null && { printf 'rpm-ostree'; return 0; }
+        printf 'none-immutable'; return 1
+    fi
+    command -v apt-get &>/dev/null && { printf 'apt'; return 0; }
+    command -v dnf &>/dev/null     && { printf 'dnf'; return 0; }
+    command -v brew &>/dev/null    && { printf 'brew'; return 0; }
+    printf 'none'; return 1
+}
+
+# Install one package via whatever this host can use.
+# Args: check-bin brew-pkg apt-pkg dnf-pkg [cask]. Gum-free; sudo where needed.
 _engine_install_pkg() {
-    local bin="$1" brewp="$2" aptp="$3" dnfp="$4" cask="${5:-}"
+    local bin="$1" brewp="$2" aptp="$3" dnfp="$4" cask="${5:-}" mgr
     command -v "$bin" &>/dev/null && { enote "${bin}: already present."; return 0; }
-    enote "installing ${bin}…"
-    case "$(uname -s)" in
-        Darwin)
-            command -v brew &>/dev/null || edie "Homebrew is required to install ${bin} — see https://brew.sh"
+    mgr="$(_engine_pkg_manager || true)"
+    enote "installing ${bin} via ${mgr}…"
+    case "$mgr" in
+        brew)
             if [[ "$cask" == cask ]]; then brew install --cask "$brewp"; else brew install "$brewp"; fi ;;
-        Linux)
-            if command -v apt-get &>/dev/null; then sudo apt-get update -qq && sudo apt-get install -y "$aptp"
-            elif command -v dnf &>/dev/null; then sudo dnf install -y "$dnfp"
-            else edie "no supported package manager (apt/dnf) found to install ${bin}."; fi ;;
-        *) edie "unsupported OS for --setup: $(uname -s)" ;;
+        apt) sudo apt-get update -qq && sudo apt-get install -y "$aptp" ;;
+        dnf) sudo dnf install -y "$dnfp" ;;
+        rpm-ostree)
+            # Layering changes the host image, so say so. --apply-live lands it
+            # in the running system as well, which is what keeps --setup from
+            # ending in "now reboot"; older rpm-ostree has no such flag, hence
+            # the retry.
+            warn "${bin} will be layered onto the host image with rpm-ostree."
+            sudo rpm-ostree install --apply-live --idempotent "$dnfp" \
+                || sudo rpm-ostree install --idempotent "$dnfp" \
+                || warn "rpm-ostree install failed; a reboot may be needed for a layered package to appear." ;;
+        none-immutable)
+            edie "this host's /usr is read-only — an ostree image (Fedora Silverblue/Kinoite, Bazzite) — and neither brew nor rpm-ostree is available to install ${bin}. Either install Homebrew (https://brew.sh; writable prefix, no reboot) or run holo-convert inside a distrobox/toolbox container." ;;
+        none-darwin)
+            edie "Homebrew is required to install ${bin} — see https://brew.sh" ;;
+        unsupported-os)
+            edie "unsupported OS for --setup: $(uname -s)" ;;
+        *)  edie "no supported package manager (apt, dnf or brew) found to install ${bin}." ;;
     esac
     command -v "$bin" &>/dev/null && enote "${bin}: ready." || warn "${bin}: install may have failed — check the output above."
 }
@@ -1929,9 +1991,16 @@ _engine_install_dejavu() {
             command -v brew &>/dev/null || { warn "Homebrew is required to install fonts — see https://brew.sh"; return 0; }
             brew install --cask font-dejavu || warn "font-dejavu install failed." ;;
         Linux)
-            if command -v apt-get &>/dev/null; then sudo apt-get install -y fonts-dejavu || warn "fonts-dejavu install failed."
-            elif command -v dnf &>/dev/null; then sudo dnf install -y dejavu-sans-mono-fonts || warn "dejavu fonts install failed."
-            else warn "no supported package manager (apt/dnf) found to install DejaVu fonts."; return 0; fi
+            # Same selection as _engine_install_pkg, for the same reason: dnf
+            # on PATH does not mean dnf can install here.
+            case "$(_engine_pkg_manager || true)" in
+                brew)       brew install --cask font-dejavu || warn "font-dejavu install failed." ;;
+                apt)        sudo apt-get install -y fonts-dejavu || warn "fonts-dejavu install failed." ;;
+                dnf)        sudo dnf install -y dejavu-sans-mono-fonts || warn "dejavu fonts install failed." ;;
+                rpm-ostree) sudo rpm-ostree install --apply-live --idempotent dejavu-sans-mono-fonts \
+                                || warn "dejavu fonts install failed." ;;
+                *)          warn "no usable package manager found to install DejaVu fonts; code falls back to Courier New."; return 0 ;;
+            esac
             fc-cache -f 2>/dev/null || true ;;
         *) warn "unsupported OS for font install: $(uname -s)" ;;
     esac
