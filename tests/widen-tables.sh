@@ -10,8 +10,22 @@ FILTER="${HERE}/.fcc/pdf/widen-tables.lua"
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 FAILS=0
 
-cmp -s "$FILTER" "${HERE}/.fcc/docx/widen-tables.lua" \
-    || { echo "FAIL - .fcc/pdf and .fcc/docx copies of widen-tables.lua differ"; FAILS=$((FAILS + 1)); }
+# Without pandoc every check below reported FAIL - "pandoc failed", which is
+# not a failure of this filter and trains whoever sees it to ignore the suite.
+# Skipped and said out loud instead, the way nordrassil skips its PyYAML half.
+if ! command -v pandoc >/dev/null 2>&1; then
+    echo "SKIP - pandoc is not installed; these checks need it (and nothing else)" >&2
+    exit 0
+fi
+
+# Compared in the shell rather than with cmp(1): a minimal image without
+# diffutils made this report the two copies as DIFFERING, which is a content
+# claim about files it never managed to read.
+if [[ "$(cat "$FILTER")" == "$(cat "${HERE}/.fcc/docx/widen-tables.lua")" ]]; then
+    echo "ok   - .fcc/pdf and .fcc/docx copies of widen-tables.lua are identical"
+else
+    echo "FAIL - .fcc/pdf and .fcc/docx copies of widen-tables.lua differ"; FAILS=$((FAILS + 1))
+fi
 
 # Prints the column widths pandoc ends up with, rounded to 3 decimals.
 cat > "$T/dump.lua" <<'LUA'

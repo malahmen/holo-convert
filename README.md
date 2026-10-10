@@ -1,5 +1,7 @@
 # holo-convert
 
+[![ci](https://github.com/malahmen/holo-convert/actions/workflows/ci.yml/badge.svg)](https://github.com/malahmen/holo-convert/actions/workflows/ci.yml)
+
 A small, dependency-light **file-conversion engine**: Markdown ↔ PDF / DOCX, driven entirely by command-line flags. \
 No TUI, no `gum`: it's the logic layer. \
 An interactive front-end (e.g. scomp-link's `holo-convert` menu) drives it with flags, you can also run it directly.
@@ -275,8 +277,48 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 
 ---
 
+## Tests
+
+```sh
+tests/widen-tables.sh
+```
+
+**8 checks** over `.fcc/pdf/widen-tables.lua`, the filter that decides table
+column widths. It needs **pandoc and nothing else** — no LaTeX, no network —
+and skips itself with a message where pandoc is absent rather than reporting
+eight failures that are really one missing dependency.
+
+The first check is that the `.fcc/pdf` and `.fcc/docx` copies of the filter are
+byte-identical, since they are meant to be and nothing enforces it. The rest
+assert the widths pandoc actually ends up with: that an identifier column is
+sized to its longest entry, capped at `0.50`, that no other column is pushed
+below `0.10`, that a table with no widths at all is evened out, and that code
+*inside a sentence* does not make the cell a code cell.
+
+Both of those last two are measured by reading the colspecs back out of
+pandoc's native AST, not by eyeballing a PDF.
+
+## CI
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to
+`main`, every pull request, and on demand:
+
+| Step | What |
+| --- | --- |
+| `pandoc` | `apt-get install pandoc` — the suite's only dependency |
+| `shellcheck` | `-S warning` on `holo-convert.sh` and the suite |
+| Python helpers | `python3 -m compileall -q .fcc` — the DOCX stampers are syntax-checked, not run |
+| tests | `tests/widen-tables.sh` |
+
+No LaTeX in CI, so the PDF path is not exercised there. It needs a TeX
+distribution, and a conversion that produces a PDF is checked by running one.
+
 ## Design
 
 `holo-convert.sh` is intentionally UI-free and self-contained: flags in, files out, clear guardrail errors when a dependency is missing. \
 That keeps it easy to script, test, and embed. \
 The interactive experience is a separate concern, this repo is just the engine.
+
+## License
+
+[MIT](LICENSE) © 2026 malahmen.
