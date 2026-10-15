@@ -1588,14 +1588,17 @@ apply_title_page() {
         # with raw TeX on page 1 (rc 0), or an escaped quote in the front
         # matter killed the run with "Undefined control sequence".
         local title_tex; title_tex="$(latex_escape_text "$title")"
-        # awk gsub eats single backslashes in replacement strings — double first
-        local title_awk="${title_tex//\\/\\\\}"
-        local image_awk="${image_md//\\/\\\\}"
-        rendered=$(awk \
-            -v title="$title_awk" \
-            -v image="$image_awk" \
-            '{gsub(/\{\{TITLE\}\}/, title); gsub(/\{\{IMAGE\}\}/, image); print}' \
-            "$template_path")
+        # Substituted by bash, not awk. awk's gsub reads `\&` in a replacement
+        # as a literal `&`, so the escape for a title like "A & B" was eaten on
+        # the way in and xelatex met a bare alignment tab. Bash 5.2 gives `&` a
+        # meaning in ${var//pat/rep} too (patsub_replacement); it is switched
+        # off for the substitution so the replacement is used as written.
+        local template_text; template_text="$(cat "$template_path")"
+        local _psr=""
+        shopt -q patsub_replacement 2>/dev/null && { _psr=on; shopt -u patsub_replacement; }
+        template_text="${template_text//\{\{TITLE\}\}/$title_tex}"
+        rendered="${template_text//\{\{IMAGE\}\}/$image_md}"
+        [[ -n "$_psr" ]] && shopt -s patsub_replacement
         # The PDF has no running header/footer — only a page number (plain
         # style). Suppress it on the title page via \thispagestyle{empty}.
         [[ "${TP_PAGENUM:-true}" == "false" ]] && rendered=$'\\thispagestyle{empty}\n'"$rendered"

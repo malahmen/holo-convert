@@ -1,0 +1,19 @@
+[info]  dependencies OK for md->pdf (pandoc 3.1.11.1).
+[info]  Synced .fcc/pdf/header.tex (bundled).
+[info]  Synced .fcc/pdf/p10k.theme (bundled).
+[info]  Synced .fcc/pdf/widen-tables.lua (bundled).
+[info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
+[info]  Synced .fcc/pdf/pagebreak.lua (bundled).
+[info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Using .fcc/pdf/header.tex.
+[ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+[info]  Seeded .fcc/title-pages/default.yaml (bundled default title page).
+[info]  Seeded .fcc/title-pages/default.md (bundled default title page).
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Title page applied (template: default.yaml) → special-title.tmp.md
+[info]  Converting special-title.tmp.md → special-title.pdf …
+[ok]    special-title.pdf ✓
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

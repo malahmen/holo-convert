@@ -13,6 +13,7 @@ pdf-prepasses   | features.md            | --from md --to pdf --substitutions --
 pdf-font        | features.md            | --from md --to pdf --font "DejaVu Sans"
 pdf-title       | titled.md              | --from md --to pdf --title-page --toc
 pdf-pdflatex    | titled.md              | --from md --to pdf --pdf-engine pdflatex
+pdf-title-tex   | special-title.md       | --from md --to pdf --title-page
 pdf-concat      | part-a.md part-b.md    | --from md --to pdf --concat --toc
 pdf-fixlinks    | features.md            | --from md --to pdf --fix-links
 docx-default    | features.md            | --from md --to docx

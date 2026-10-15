@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Turn one golden run into text that can be compared exactly.
 
-  collect.py <work-dir> <result-dir> <repo-root>
+  collect.py <work-dir> <result-dir> <repo-root> <input>...
 
 - every output file: a .docx is unzipped and its XML parts pretty-printed one
   per file (media listed by hash); a .md is copied; a .pdf is only noted as
   present - its bytes carry a build date, and pandoc's LaTeX for it is already
   recorded by the pandoc wrapper;
-- the source files after the run (--fix-links rewrites them);
+- the case's own input files after the run (--fix-links rewrites them);
 - then every text file in the result has the run's own paths and today's
   date replaced by placeholders, and terminal colours stripped.
 
@@ -66,11 +66,13 @@ def collect_outputs(work: str, result: str):
         fh.write("\n".join(sorted(listing)) + ("\n" if listing else ""))
 
 
-def collect_sources(work: str, result: str):
+def collect_sources(work: str, result: str, inputs):
+    """The case's own Markdown inputs only: another reference document sitting
+    in the working folder is not this case's business."""
     dest = os.path.join(result, "sources-after")
     os.makedirs(dest, exist_ok=True)
-    for name in sorted(os.listdir(work)):
-        if name.endswith(".md"):
+    for name in sorted(set(inputs)):
+        if name.endswith(".md") and os.path.isfile(os.path.join(work, name)):
             shutil.copy(os.path.join(work, name), dest)
 
 
@@ -100,9 +102,9 @@ def normalise(result: str, work: str, engine_dir: str):
 
 
 def main(argv):
-    work, result, engine_dir = argv[1], argv[2], argv[3]
+    work, result, engine_dir, inputs = argv[1], argv[2], argv[3], argv[4:]
     collect_outputs(work, result)
-    collect_sources(work, result)
+    collect_sources(work, result, inputs)
     normalise(result, work, engine_dir)
     return 0
 
