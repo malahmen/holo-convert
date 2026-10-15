@@ -15,7 +15,7 @@ from .state import REPO
 from .ui import edie, enote
 
 CONTAINERFILE = os.path.join(REPO, "container", "Containerfile")
-LAUNCHER = os.path.join(REPO, "wip", "holo-convert.sh")
+LAUNCHER = os.path.join(REPO, "holo-convert.sh")
 
 
 def container_image() -> str:

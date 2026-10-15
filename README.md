@@ -9,6 +9,7 @@ An interactive front-end (e.g. scomp-link's `holo-convert` menu) drives it with 
 - **Flags in, files out.** Every option is a flag, nothing is prompted.
 - **Guardrails, not surprises.** Dependencies are _checked_ and reported, never installed behind your back _(run `--setup` to install them explicitly)_.
 - **Self-contained.** Conversion assets _(pandoc filters, code theme, DOCX reference docs, title-page templates)_ ship in `.fcc/` next to the script.
+- **Python, standard library only.** `holo-convert.sh` launches the engine in `holo/`; `holo_convert.py` runs it directly. The bash engine it replaced is release [v1.0.0](https://github.com/malahmen/holo-convert/releases/tag/v1.0.0) — the same flags, messages and output, held to it by the golden harness.
 
 ---
 
@@ -274,9 +275,9 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 
 | Need     | Requirement                                                                                                        |
 | -------- | ------------------------------------------------------------------------------------------------------------------ |
-| Always   | `bash` 4+ (3.2 works), `pandoc` **≥ 2.10** — the version is checked at start-up; 3.7+ uses `--syntax-highlighting`, older releases fall back to `--highlight-style` automatically (Debian/Ubuntu apt ship 2.17/3.1, both fine) |
+| Always   | `python3` 3.9+ (standard library only), `pandoc` **≥ 2.10** — the version is checked at start-up; 3.7+ uses `--syntax-highlighting`, older releases fall back to `--highlight-style` automatically (Debian/Ubuntu apt ship 2.17/3.1, both fine) |
 | → PDF    | a LaTeX engine (`xelatex` recommended; or lualatex / pdflatex). wkhtmltopdf / weasyprint / pagedjs-cli are accepted with reduced styling — see `--pdf-engine` above |
-| → DOCX   | `python3` (standard library only)                                                                                  |
+| → DOCX   | nothing more: the DOCX post-steps are `python3` scripts in `.fcc/docx/`                                            |
 | Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), DejaVu fonts (monospace for PDF code; Courier New otherwise), `mermaid-cli` (diagrams) |
 
 - `--setup` installs the **core** via whatever this host can actually use, scoped to `--to` when given:
@@ -358,9 +359,11 @@ tests/golden.sh record             # re-record after a deliberate change
 tests/golden.sh check --case docx  # only some cases
 ```
 
-`tests/golden.sh ab -- <flags> <files>` puts one real conversion through both the
-bash engine and the Python port (`wip/`), and compares them the same way;
-`--local` runs it on this host's tools instead of the image.
+`tests/golden.sh ab --engine-b PATH -- <flags> <files>` puts one real conversion
+through this engine and another, and compares them the same way; `--local` runs
+it on this host's tools instead of the image. To compare with the last bash
+release: `git worktree add .golden-v1 v1.0.0`, then `--engine-b
+.golden-v1/holo-convert.sh`.
 
 It needs podman or docker and the image (`--setup --engine container`); without
 them it prints SKIP, so `tests/run-all.sh` still works anywhere. CI builds the
@@ -403,7 +406,7 @@ pandoc's native AST, not by eyeballing a PDF.
 | --- | --- |
 | `pandoc` | `apt-get install pandoc` — the suite's only dependency |
 | `shellcheck` | `-S warning` on `holo-convert.sh` and `tests/*.sh` — globbed, so the next test file is covered automatically |
-| Python helpers | `python3 -m compileall -q .fcc` — the DOCX stampers are syntax-checked, not run |
+| Python | `python3 -m compileall -q holo holo_convert.py .fcc` — the engine and the DOCX stampers are syntax-checked |
 | tests | `tests/run-all.sh` |
 
 No LaTeX in CI, so the PDF path is not exercised there. It needs a TeX

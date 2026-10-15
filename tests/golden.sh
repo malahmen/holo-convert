@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # The golden harness: reference documents through the engine, in the pinned
-# tools image, compared exactly with what the bash engine produced.
+# tools image, compared exactly with what the bash engine (v1.0.0) produced.
 #
 #   tests/golden.sh                    check the engine against tests/golden/expected/
 #   tests/golden.sh record             re-record expected/ (after a deliberate change)
-#   tests/golden.sh check --engine wip/holo-convert.sh     check another engine (the port)
+#   tests/golden.sh check --engine PATH  check another engine (inside this repository)
 #   tests/golden.sh check --case docx  only the cases whose name contains "docx"
-#   tests/golden.sh ab [--local] [--] <flags> <files>   one real conversion through the
-#                                     bash engine and the Python port, compared
-#   tests/golden.sh ab --local -- ...           the same on this host's own tools
+#   tests/golden.sh ab --engine-b PATH [--local] [--] <flags> <files>
+#                                     one real conversion through this engine and
+#                                     another (e.g. v1.0.0 in a worktree), compared;
+#                                     --local uses this host's tools, not the image
 #
 # What is compared, per case (tests/golden/cases.txt):
 #   - the exit code and the engine's messages;
@@ -29,7 +30,16 @@ set -uo pipefail
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$TEST_DIR/.." && pwd -P)"
 MODE="check" ENGINE="$REPO/holo-convert.sh" FILTER="" RT="${HOLO_CONVERT_RUNTIME:-}" LOCAL=false
-AB_ARGS=() B_ENGINE="$REPO/wip/holo-convert.sh"
+AB_ARGS=() B_ENGINE=""
+
+# The image --engine container uses: its tag is the Containerfile's content
+# hash (holo/container.py), so a changed toolchain is a different image.
+golden_image() {
+    if [[ -n "${HOLO_CONVERT_IMAGE:-}" ]]; then printf '%s' "$HOLO_CONVERT_IMAGE"; return; fi
+    local sum
+    sum="$( { sha256sum "$REPO/container/Containerfile" 2>/dev/null || shasum -a 256 "$REPO/container/Containerfile"; } | cut -c1-12)"
+    printf 'localhost/holo-convert-tools:%s' "$sum"
+}
 while [[ $# -gt 0 ]]; do
     case "$1" in
         check|record|ab) MODE="$1"; shift ;;
@@ -53,7 +63,13 @@ done
 # --- ab: one real conversion, two engines --------------------------------------
 if [[ "$MODE" == ab ]]; then
     (( ${#AB_ARGS[@]} )) || { echo "golden ab: give the conversion after --  (e.g. ab -- --from md --to docx doc.md)" >&2; exit 2; }
+    if [[ -z "$B_ENGINE" ]]; then
+        echo "golden ab: name the engine to compare with, inside this repository, e.g. the last bash release:" >&2
+        echo "  git worktree add .golden-v1 v1.0.0 && tests/golden.sh ab --engine-b .golden-v1/holo-convert.sh --local --from md ..." >&2
+        exit 2
+    fi
     [[ -f "$B_ENGINE" ]] || { echo "golden ab: no engine at $B_ENGINE" >&2; exit 2; }
+    case "$B_ENGINE" in "$REPO"/*) ;; *) echo "golden ab: --engine-b must live in this repository ($REPO)" >&2; exit 2 ;; esac
     for a in "${AB_ARGS[@]}"; do
         [[ "$a" == -o || "$a" == --output ]] && { echo "golden ab: leave out -o - each engine writes into its own working folder" >&2; exit 2; }
     done
@@ -74,7 +90,7 @@ if [[ "$MODE" == ab ]]; then
             if command -v podman &>/dev/null; then RT=podman; elif command -v docker &>/dev/null; then RT=docker
             else echo "golden ab: no podman or docker (or use --local)" >&2; exit 2; fi
         fi
-        IMAGE="$(bash -c 'source "$1" && container_image' _ "$REPO/holo-convert.sh")"
+        IMAGE="$(golden_image)"
         "$RT" image inspect "$IMAGE" &>/dev/null || { echo "golden ab: image $IMAGE not built (holo-convert.sh --setup --engine container)" >&2; exit 2; }
         user=(--user "$(id -u):$(id -g)"); [[ "$RT" == podman ]] && user=(--userns=keep-id)
         "$RT" run --rm --network none "${user[@]}" --security-opt label=disable -e HOME=/tmp \
@@ -97,7 +113,7 @@ if [[ -z "$RT" ]]; then
 fi
 # The image the engine's own --engine container uses: its tag is the
 # Containerfile's content hash, so a changed toolchain is a different image.
-IMAGE="$(bash -c 'source "$1" && container_image' _ "$REPO/holo-convert.sh")" \
+IMAGE="$(golden_image)" \
     || { echo "golden: could not work out the image tag" >&2; exit 2; }
 if ! "$RT" image inspect "$IMAGE" &>/dev/null; then
     if [[ "$MODE" == record ]]; then

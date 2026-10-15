@@ -5,9 +5,8 @@ side with the script.
 """
 import os
 
-# The repository root: the canonical .fcc/ bundle lives there, one level above
-# wip/. (In the bash engine this is SCRIPT_DIR.)
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# The repository root: the canonical .fcc/ bundle lives there, next to holo/.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CANONICAL_FCC = os.path.join(REPO, ".fcc")
 
 FCC_DIR = ".fcc"

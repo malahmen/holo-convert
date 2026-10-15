@@ -95,7 +95,7 @@ check "an unknown engine is refused" has "--engine must be local or container" "
 check "HOLO_CONVERT_ENGINE selects the engine too" has "localhost/holo-convert-tools:" "$STUB_LOG"
 
 echo "## the tag follows the Containerfile"
-mkdir -p "$T/copy/container"; cp "$ENG" "$T/copy/"; cp -R "${HERE}/.fcc" "$T/copy/"
+mkdir -p "$T/copy/container"; cp "$ENG" "${HERE}/holo_convert.py" "$T/copy/"; cp -R "${HERE}/.fcc" "${HERE}/holo" "$T/copy/"
 cp "${HERE}/container/Containerfile" "$T/copy/container/"
 echo "# an edit" >> "$T/copy/container/Containerfile"
 : > "$STUB_LOG"; (cd "$T/work" && bash "$T/copy/holo-convert.sh" --setup --engine container --runtime docker) > "$T/out" 2>&1
