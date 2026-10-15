@@ -393,6 +393,54 @@
     </w:p>
     <w:p>
       <w:pPr>
+        <w:pStyle w:val="FirstParagraph"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:bCs/>
+        </w:rPr>
+        <w:t xml:space="preserve">A label, then a list with no blank line between:</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Compact"/>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1004"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">first, as GitHub renders it</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Compact"/>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1004"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">second</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Compact"/>
+        <w:numPr>
+          <w:ilvl w:val="1"/>
+          <w:numId w:val="1005"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">nested</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
         <w:pStyle w:val="DefinitionTerm"/>
       </w:pPr>
       <w:r>

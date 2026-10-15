@@ -1,7 +1,7 @@
 ./output/features.tmp.md
 -o
 ./output/features.docx
---from=markdown+gfm_auto_identifiers
+--from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline
 --to=docx
 --resource-path=<WORK>:./output:.
 --lua-filter=.fcc/docx/br.lua
