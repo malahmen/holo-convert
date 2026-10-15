@@ -49,9 +49,10 @@ def first_h1(records) -> int:
 
 def yaml_scalar(raw: str) -> str:
     """A one-line YAML scalar's value: "double-quoted" with its backslash
-    escapes, 'single-quoted' with '' for a quote, or plain, up to a " #"
-    comment. Quotes inside the value are kept - they used to be deleted, so
-    It's became Its."""
+    escapes, 'single-quoted' with '' for a quote, or plain - whole: a " #"
+    is kept, not read as a comment, since "title: Issue #1" means the #1
+    (case pdf-title-tex). Quotes inside the value are kept - they used to be
+    deleted, so It's became Its."""
     s = raw.strip(sh.SPACE)
     out, i = [], 1
     if s.startswith('"'):
@@ -75,10 +76,7 @@ def yaml_scalar(raw: str) -> str:
             out.append(s[i])
             i += 1
         return "".join(out)
-    if s.startswith("#"):
-        return ""            # the whole value is a comment
-    m = re.search(r"[ \t]#", s)
-    return (s[:m.start()] if m else s).rstrip(sh.SPACE)
+    return s
 
 
 def yaml_quote(value: str) -> str:
