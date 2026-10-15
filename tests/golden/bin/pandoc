@@ -11,6 +11,11 @@
 #   out.tex - for a PDF, the LaTeX pandoc generates from the same arguments:
 #             a text form of the PDF that can be compared exactly. The real
 #             PDF is still built afterwards, so a LaTeX error still fails.
+#   typeset   - for a PDF from a LaTeX engine, what typesetting that LaTeX
+#             reports and the LaTeX source cannot show: every overfull box
+#             (text wider than its space - a table cell running into the next
+#             column, a line off the page) and every character no font had,
+#             which the PDF silently lacks.
 #
 # --version / --list-* calls are not recorded: they ask about pandoc, not the
 # document.
@@ -63,6 +68,23 @@ if [[ "$out" == *.pdf ]]; then
     done
     "$REAL" "${tex[@]}" -s >/dev/null 2>"$call/out.tex.stderr" || echo "LaTeX capture failed (exit $?)" >> "$call/out.tex.stderr"
     [[ -s "$call/out.tex.stderr" ]] || rm -f "$call/out.tex.stderr"
+
+    engine="pdflatex"
+    for a in "$@"; do [[ "$a" == --pdf-engine=* ]] && engine="${a#--pdf-engine=}"; done
+    case "$engine" in xelatex|lualatex|pdflatex)
+        if [[ -s "$call/out.tex" ]] && command -v "$engine" >/dev/null 2>&1; then
+            tdir="$(mktemp -d)"
+            "$engine" -interaction=nonstopmode -output-directory="$tdir" "$call/out.tex" >/dev/null 2>&1
+            # Both warnings fit within TeX's 79-column log lines up to the part kept.
+            {
+                echo "overfull:"
+                grep -ao 'Overfull \\[hv]box ([0-9.]*pt too [a-z]*)' "$tdir/out.log" | sed 's/^/  /'
+                echo "missing characters:"
+                grep -ao 'Missing character: There is no .* (U+[0-9A-F]*)' "$tdir/out.log" | sort -u | sed 's/^/  /'
+            } > "$call/typeset"
+            rm -rf "$tdir"
+        fi ;;
+    esac
 fi
 
 exec "$REAL" "$@"

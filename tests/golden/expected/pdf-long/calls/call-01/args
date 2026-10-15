@@ -1,0 +1,5 @@
+./output/long-strings.tmp.md
+--from
+markdown+gfm_auto_identifiers
+--to
+json
