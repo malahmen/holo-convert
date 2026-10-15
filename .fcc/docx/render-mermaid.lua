@@ -6,7 +6,10 @@
 --   holo-convert.sh --with-optional      (installs it via npm), or
 --   npm install -g @mermaid-js/mermaid-cli
 --
--- mmdc is called with an absolute path to avoid $PATH issues in subprocess.
+-- mmdc is called with an absolute path to avoid $PATH issues in subprocess,
+-- through pandoc.pipe: its arguments go straight to it, no shell in between,
+-- so a space or quote in a path (a HOME with a space, a TMPDIR) cannot split
+-- or break the command as it did when the command line was pasted together.
 -- Rendered PNGs go to a per-run directory under the system temp location
 -- (os.tmpname). The filter cannot remove it itself: pandoc's writer reads the
 -- images only after all filters have finished, so the directory is left for
@@ -52,7 +55,7 @@ local function ensure_img_dir()
     local tmp = os.tmpname()
     os.remove(tmp)
     IMG_DIR = tmp .. "_mermaid"
-    os.execute("mkdir -p " .. IMG_DIR)
+    os.execute("mkdir -p '" .. IMG_DIR:gsub("'", "'\\''") .. "'")
     return IMG_DIR
 end
 
@@ -78,20 +81,11 @@ local function render_mermaid(diagram_src, index)
     f:write(diagram_src)
     f:close()
 
-    -- Call mmdc
-    local cmd = MMDC
-        .. " -i " .. src_file
-        .. " -o " .. out_file
-        .. " -b transparent"
-        .. " --scale 2"
-        .. " 2>&1"
-
-    local handle = io.popen(cmd)
-    if not handle then
-        return nil, "could not run mmdc for diagram " .. index
-    end
-    local output = handle:read("*a") or ""
-    local ok = handle:close()
+    -- Call mmdc. pandoc.pipe raises on a non-zero exit; its error carries
+    -- the output.
+    local ok, output = pcall(pandoc.pipe, MMDC,
+        { "-i", src_file, "-o", out_file, "-b", "transparent", "--scale", "2" }, "")
+    output = tostring(output or "")
 
     -- Probe for the output file and close the handle (it used to leak).
     local probe = io.open(out_file, "r")
