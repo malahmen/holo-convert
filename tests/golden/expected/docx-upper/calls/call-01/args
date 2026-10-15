@@ -1,0 +1,5 @@
+<WORK>/output/.holo-run-<RUN>/UPPER.tmp.md
+--from
+markdown+gfm_auto_identifiers
+--to
+json

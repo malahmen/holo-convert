@@ -98,12 +98,12 @@ $$\sum\_{k = 1}^{n}k = \frac{n(n + 1)}{2}$$
 
 ## Images
 
-<img src="./output/media/generated/media/rId26.svg"
+<img src="media/generated/media/rId26.svg"
 style="width:1.25in;height:0.625in" alt="A vector diagram" />
 
 A vector diagram
 
-<img src="./output/media/generated/media/rId30.png" title="A title"
+<img src="media/generated/media/rId30.png" title="A title"
 style="width:0.22222in;height:0.22222in" alt="A small picture" />
 
 A small picture

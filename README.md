@@ -52,7 +52,7 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | ---------------------------------------------- | --------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
 | `--from md\|docx`                              | all             | — (required) | Source format.                                                                                              |
 | `--to pdf\|docx\|md`                           | all             | — (required) | Output format. Valid pairs: md→pdf, md→docx, docx→md.                                                       |
-| `<file>...`                                    | all             | — (required) | Input file(s). Paths are relative to the current directory.                                                 |
+| `<file>...`                                    | all             | — (required) | Input file(s). Paths are relative to the current directory. The extension may be in any case (`NOTES.MD` → `NOTES.pdf`). An empty `.md` is reported as "nothing to convert" and counts as failed. |
 | `-o, --output DIR`                             | all             | `./output`   | Output directory (created if missing).                                                                      |
 | `--toc` / `--no-toc`                           | md→pdf, md→docx | off          | Build a table of contents from the headings. With a title page, the TOC is placed **after** the cover.      |
 | `--toc-depth N`                                | md→pdf, md→docx | `3`          | Heading levels to include in the TOC.                                                                       |
@@ -62,6 +62,7 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | `--concat-pagebreak` / `--no-concat-pagebreak` | md→pdf, md→docx | on           | Insert a page break between concatenated files.                                                             |
 | `--fix-links`                                  | md→pdf, md→docx | off          | Also write confident internal anchor-link fixes back into the **source** `.md`. By default only the working copy handed to pandoc is reconciled, so the output resolves and the source stays as authored. |
 | `--no-check-links`                             | md→pdf, md→docx | check on     | Skip the internal anchor-link check/reconcile entirely (needs `python3`; never fatal).                       |
+| `--open` / `--no-open`                         | all             | on           | Open each output in its default viewer when it is done. In a batch that is one viewer per file: `--no-open` for batches and scripts. |
 
 ### Markdown pre-passes (source clean-up)
 
@@ -228,6 +229,20 @@ Local `.svg` references in the body are embedded only when `--raster-svg` conver
 
 Tables always span the full text width, in PDF and DOCX alike: columns without explicit widths are shared out evenly. A first column that is an identifier list (most of its cells are entirely `code`) is widened to fit its longest identifier, up to half the table, without pushing any other column below 10%; a first column that merely contains some code is left alone. In DOCX the column widths are fitted to the page's real text width (built-in references), so Word and Pages no longer stop a table short of the right margin.
 
+### Long words, URLs and inline code (PDF)
+
+Hyphenation is off in the PDF, so a string wider than its space used to run into the next table column or off the page. Strings longer than 20 characters now get break opportunities after `/ . - _ ? & = :` and the like, and every 10 characters where there is none; TeX still prefers to break between words. Long inline code breaks the same way, its dark background continuing across the line. Headings are left as they are (`.fcc/pdf/breakable.lua`).
+
+### Characters beyond Latin (PDF)
+
+The default PDF font, Latin Modern, has no Greek, Cyrillic, `⇒`, `✓`, `✗` or box drawing; those used to vanish without a word. With XeLaTeX and no `--font`, they now fall back to DejaVu Serif (letters) and DejaVu Sans (symbols), block by block; code keeps its monospace font. What no font has is reported once per file, by character:
+
+```
+[warn]  report.pdf: 3 character(s) missing from the PDF in at least one place - the PDF fonts there have no glyph for them: 你 (U+4F60) 好 (U+597D) 🚀 (U+1F680)
+```
+
+Not supported in PDF output: CJK, emoji and right-to-left scripts (Hebrew, Arabic; XeLaTeX would set them left to right) - DOCX keeps all of them. With `--font`, the font is yours and nothing falls back. The fallback needs DejaVu installed (it is, in the container image).
+
 ### Line breaks (`<br>`)
 
 `<br>`, `<br/>` and `<br />` _(any case)_ become real line breaks in PDF and DOCX, so a table cell can hold several lines:
@@ -263,9 +278,11 @@ It becomes a real page break in every output: `\newpage` in LaTeX/PDF, a Word pa
 
 ## Working directory & assets
 
-- On every run the bundled `.fcc/pdf/*` and `.fcc/docx/*` assets _(filters, code theme, reference docs, post-processors)_ are synced into a working `./.fcc/` in the current directory, **overwriting** local copies so a stale filter never lingers. `monofont.tex` is regenerated there for each `md→pdf` run.
+- On every run the bundled `.fcc/pdf/*` and `.fcc/docx/*` assets _(filters, code theme, reference docs, post-processors)_ are synced into a working `./.fcc/` in the current directory, **overwriting** local copies so a stale filter never lingers. `monofont.tex` and `fallback.tex` are regenerated there for each `md→pdf` run.
 - Only `./.fcc/docx/config` and `./.fcc/title-pages/*` are yours to edit per project: they are never overwritten (the bundled `default.yaml`/`default.md` title page is seeded only when missing).
 - Output is written to `./output/` (or `-o DIR`). Both `.fcc/` and `output/` are runtime artifacts, keep them out of version control.
+- Working copies (`<name>.tmp.md`, `_concat.tmp.md`) live in a folder of the run's own inside the output folder, `.holo-run-XXXXXX/`, removed when the run ends - also on Ctrl-C and `SIGTERM`. Several runs into one output folder therefore no longer overwrite each other's working copies (their outputs still share the folder: give them different names). The `.fcc/` files every run regenerates are replaced atomically.
+- DOCX → Markdown: images go to `output/media/<name>/`, and the links in the `.md` are relative to it (`media/<name>/...`), so they resolve from the `.md`'s own folder.
 
 ---
 
@@ -278,7 +295,7 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 | Always   | `python3` 3.9+ (standard library only), `pandoc` **≥ 2.10** — the version is checked at start-up; 3.7+ uses `--syntax-highlighting`, older releases fall back to `--highlight-style` automatically (Debian/Ubuntu apt ship 2.17/3.1, both fine) |
 | → PDF    | a LaTeX engine (`xelatex` recommended; or lualatex / pdflatex). wkhtmltopdf / weasyprint / pagedjs-cli are accepted with reduced styling — see `--pdf-engine` above |
 | → DOCX   | nothing more: the DOCX post-steps are `python3` scripts in `.fcc/docx/`                                            |
-| Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), DejaVu fonts (monospace for PDF code; Courier New otherwise), `mermaid-cli` (diagrams) |
+| Optional | `rsvg-convert` (SVG), `sips`/ImageMagick (GIF→PNG for PDF), fontconfig (font autodetect), DejaVu fonts (monospace for PDF code, Courier New otherwise; the fallback for Greek, Cyrillic and symbols in PDF prose), `mermaid-cli` (diagrams) |
 
 - `--setup` installs the **core** via whatever this host can actually use, scoped to `--to` when given:
 
@@ -328,13 +345,16 @@ holo-convert.sh --engine container --from md --to pdf --toc doc.md
 
 ```sh
 tests/widen-tables.sh
+tests/breakable.sh
+tests/render-mermaid.sh   # mmdc found and run under a path with spaces and quotes
+tests/runs.sh             # side-by-side runs, a killed run, --no-open
 ```
 
 ```sh
 tests/run-all.sh          # every file; skips what the host cannot run
 ```
 
-**The golden harness** — `tests/golden.sh` — puts 20 reference conversions
+**The golden harness** — `tests/golden.sh` — puts 29 reference conversions
 (`tests/golden/cases.txt`: PDF and DOCX with every option family, DOCX→Markdown,
 `--concat`, `--fix-links`) through the engine **in the pinned tools image**, and
 compares the results exactly with `tests/golden/expected/`, recorded from this
@@ -345,6 +365,8 @@ engine:
   Markdown after the pre-passes, generated LaTeX headers);
 - for a PDF, the LaTeX pandoc generates from those arguments (the PDF's own bytes
   carry a date; the real PDF is still built, so a LaTeX error still fails);
+- and what typesetting that LaTeX reports, which the source cannot show: every
+  overfull box (text wider than its space) and every character no font had;
 - every DOCX as its XML parts, pretty-printed, after the Python post-steps;
 - the sources after the run (`--fix-links` rewrites them).
 

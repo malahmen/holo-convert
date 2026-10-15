@@ -1,0 +1,19 @@
+[info]  dependencies OK for md->pdf (pandoc 3.1.11.1).
+[info]  Synced .fcc/pdf/header.tex (bundled).
+[info]  Synced .fcc/pdf/p10k.theme (bundled).
+[info]  Synced .fcc/pdf/widen-tables.lua (bundled).
+[info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
+[info]  Synced .fcc/pdf/pagebreak.lua (bundled).
+[info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Synced .fcc/pdf/breakable.lua (bundled).
+[info]  Using .fcc/pdf/header.tex.
+[ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Converting unicode.tmp.md → unicode.pdf …
+[warn]  unicode.pdf: 10 character(s) missing from the PDF in at least one place - 'DejaVu Sans' there have no glyph for them: 你 (U+4F60) 好 (U+597D) こ (U+3053) ん (U+3093) に (U+306B) ち (U+3061) は (U+306F) 안 (U+C548) 녕 (U+B155) 🚀 (U+1F680)
+[warn]    CJK, emoji and right-to-left scripts (Hebrew, Arabic) are not supported in PDF output (DOCX keeps them); for other characters, --font with a font that has them.
+[ok]    unicode.pdf ✓
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

@@ -1,0 +1,25 @@
+[info]  dependencies OK for md->docx (pandoc 3.1.11.1).
+[info]  Synced .fcc/docx/reference.docx (bundled).
+[info]  Synced .fcc/docx/reference-plain.docx (bundled).
+[info]  Synced .fcc/docx/stamp_docx_tokens.py (bundled).
+[info]  Synced .fcc/docx/docx_layout.py (bundled).
+[info]  Synced .fcc/docx/caption_figures.py (bundled).
+[info]  Synced .fcc/docx/check_links.py (bundled).
+[info]  Synced .fcc/docx/pagebreak.lua (bundled).
+[info]  Synced .fcc/docx/render-mermaid.lua (bundled).
+[info]  Synced .fcc/docx/br.lua (bundled).
+[info]  Synced .fcc/docx/widen-tables.lua (bundled).
+[info]  Synced .fcc/docx/p10k.theme (bundled).
+[info]  DOCX monospace font: DejaVu Sans Mono
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Converting UPPER.tmp.md → UPPER.docx ...
+[info]  Synced .fcc/docx/fold_pagebreaks.py (bundled).
+[info]  Synced .fcc/docx/apply_docx_fonts.py (bundled).
+applied fonts: prose=(unchanged) mono=DejaVu Sans Mono
+[info]  Synced .fcc/docx/shade_tables.py (bundled).
+adjusted docx layout (page geometry/table width/image fit/centering)
+[ok]    UPPER.docx ✓
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

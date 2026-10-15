@@ -55,11 +55,14 @@ class State:
         self.concat_pagebreak = True
         self.docx_page_size = "a4"
         self.use_toc = False
+        self.open_output = True
+        self.work_dir = ""
         self.toc_depth = "3"
         self.pdf_engine = ""
         self.pdf_font = ""
         self.available_engines = []
         self.monofont_tex = ""
+        self.fallback_tex = ""
         self.header_tex = ""
         self.docx_font = ""
         self.docx_mono = ""

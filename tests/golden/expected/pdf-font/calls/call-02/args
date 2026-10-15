@@ -1,4 +1,4 @@
-./output/features.tmp.md
+<WORK>/output/.holo-run-<RUN>/features.tmp.md
 -o
 ./output/features.pdf
 --from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline
@@ -21,5 +21,6 @@ citecolor=blue
 --lua-filter=.fcc/pdf/widen-tables.lua
 --lua-filter=.fcc/pdf/render-mermaid.lua
 --lua-filter=.fcc/pdf/pagebreak.lua
+--lua-filter=.fcc/pdf/breakable.lua
 -V
 mainfont=DejaVu Sans
