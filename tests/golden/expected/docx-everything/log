@@ -1,0 +1,39 @@
+[info]  dependencies OK for md->docx (pandoc 3.1.11.1).
+[info]  Synced .fcc/docx/reference.docx (bundled).
+[info]  Synced .fcc/docx/reference-plain.docx (bundled).
+[info]  Synced .fcc/docx/stamp_docx_tokens.py (bundled).
+[info]  Synced .fcc/docx/docx_layout.py (bundled).
+[info]  Synced .fcc/docx/caption_figures.py (bundled).
+[info]  Synced .fcc/docx/check_links.py (bundled).
+[info]  Synced .fcc/docx/pagebreak.lua (bundled).
+[info]  Synced .fcc/docx/render-mermaid.lua (bundled).
+[info]  Synced .fcc/docx/br.lua (bundled).
+[info]  Synced .fcc/docx/widen-tables.lua (bundled).
+[info]  Synced .fcc/docx/p10k.theme (bundled).
+[info]  Letterhead — author='Platform Team' classification='Internal' version='v1.0' logo='pixel.png'
+[info]  Title-page chrome — header=false footer=false page#=false
+[info]  DOCX monospace font: DejaVu Sans Mono
+[info]  Seeded .fcc/title-pages/default.yaml (bundled default title page).
+[info]  Seeded .fcc/title-pages/default.md (bundled default title page).
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Title page applied (template: default.yaml) → features.tmp.md
+[warn]  Internal link '#nowhere-at-all' matches no heading.
+        No similar heading found.
+[warn]  Internal link '#tabels' matches no heading.
+        Closest heading: '#tables'  (# Tables)  — unsure, please verify.
+[info]  Converting features.tmp.md → features.docx ...
+[render-mermaid] WARNING: mmdc not found — run 'holo-convert.sh --with-optional' (installs mermaid-cli via npm), or: npm install -g @mermaid-js/mermaid-cli
+[info]  Synced .fcc/docx/fold_pagebreaks.py (bundled).
+folded 2 page break(s)
+[info]  Synced .fcc/docx/apply_docx_fonts.py (bundled).
+applied fonts: prose=Helvetica mono=DejaVu Sans Mono
+[info]  Synced .fcc/docx/shade_tables.py (bundled).
+shaded table rows: header=CCCCCC band=F5F5F5
+adjusted docx layout (page geometry/table width/image fit/centering)
+captioned 2 figure(s) as native Word captions (Figure N: ...)
+stamped letterhead + logo
+[ok]    features.docx ✓
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

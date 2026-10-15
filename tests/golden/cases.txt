@@ -23,5 +23,6 @@ docx-title      | titled.md              | --from md --to docx --title-page --le
 docx-fonts      | features.md            | --from md --to docx --font "DejaVu Sans" --mono "DejaVu Sans Mono"
 docx-prepasses  | features.md            | --from md --to docx --substitutions --strip-rules --unwrap-wikilinks --raster-svg
 docx-concat     | part-a.md part-b.md    | --from md --to docx --concat --concat-pagebreak --letterhead --date "1 January 2026"
+docx-everything | features.md            | --from md --to docx --substitutions --strip-rules --unwrap-wikilinks --raster-svg --toc --toc-depth 3 --title-page --image pixel.png --reference letterhead --author "Platform Team" --classification Internal --version v1.0 --date "1 January 2026" --logo pixel.png --no-tp-header --no-tp-footer --page-size a4 --font Helvetica
 md-gfm          | generated.docx         | --from docx --to md
 md-commonmark   | generated.docx         | --from docx --to md --md-variant commonmark
