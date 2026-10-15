@@ -6,7 +6,7 @@
 #   tests/golden.sh record             re-record expected/ (after a deliberate change)
 #   tests/golden.sh check --engine wip/holo-convert.sh     check another engine (the port)
 #   tests/golden.sh check --case docx  only the cases whose name contains "docx"
-#   tests/golden.sh ab -- <flags> <files>       one real conversion through the
+#   tests/golden.sh ab [--local] [--] <flags> <files>   one real conversion through the
 #                                     bash engine and the Python port, compared
 #   tests/golden.sh ab --local -- ...           the same on this host's own tools
 #
@@ -40,7 +40,12 @@ while [[ $# -gt 0 ]]; do
         --case)    FILTER="$2"; shift 2 ;;
         --runtime) RT="$2"; shift 2 ;;
         -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
-        *) echo "golden: unknown argument $1" >&2; exit 2 ;;
+        # In ab mode the first argument the harness does not know starts the
+        # conversion, so `ab --local --from md ...` needs no `--`. (The
+        # harness's own --engine/--runtime/--case come first; put a `--`
+        # before the conversion to hand those to holo-convert instead.)
+        *) if [[ "$MODE" == ab ]]; then AB_ARGS=("$@"); break; fi
+           echo "golden: unknown argument $1" >&2; exit 2 ;;
     esac
 done
 [[ -f "$ENGINE" ]] || { echo "golden: no engine at $ENGINE" >&2; exit 2; }
