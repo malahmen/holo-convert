@@ -1,0 +1,21 @@
+[info]  dependencies OK for md->pdf (pandoc 3.1.11.1).
+[info]  Synced .fcc/pdf/header.tex (bundled).
+[info]  Synced .fcc/pdf/p10k.theme (bundled).
+[info]  Synced .fcc/pdf/widen-tables.lua (bundled).
+[info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
+[info]  Synced .fcc/pdf/pagebreak.lua (bundled).
+[info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Synced .fcc/pdf/breakable.lua (bundled).
+[info]  Using .fcc/pdf/header.tex.
+[ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+[info]  Characters Latin Modern lacks (Greek, Cyrillic, arrows, ✓, box drawing) fall back to DejaVu.
+[info]  Seeded .fcc/title-pages/default.yaml (bundled default title page).
+[info]  Seeded .fcc/title-pages/default.md (bundled default title page).
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Title page applied (template: default.yaml) → quoted-title.tmp.md
+[info]  Converting quoted-title.tmp.md → quoted-title.pdf …
+[ok]    quoted-title.pdf ✓
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

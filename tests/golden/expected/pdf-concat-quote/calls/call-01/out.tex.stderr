@@ -1,0 +1,5 @@
+YAML parse exception at line 1, column 17,
+while parsing a block mapping:
+did not find expected key
+Consider enclosing the entire field in 'single quotes'
+LaTeX capture failed (exit 64)

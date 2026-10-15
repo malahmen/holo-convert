@@ -1,0 +1,12 @@
+./output/quoted-title.tmp.md
+-o
+./output/quoted-title.docx
+--from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline
+--to=docx
+--resource-path=<WORK>:./output:.
+--lua-filter=.fcc/docx/br.lua
+--lua-filter=.fcc/docx/widen-tables.lua
+--lua-filter=.fcc/docx/pagebreak.lua
+--lua-filter=.fcc/docx/render-mermaid.lua
+--reference-doc=.fcc/docx/reference.docx
+--highlight-style=.fcc/docx/p10k.theme
