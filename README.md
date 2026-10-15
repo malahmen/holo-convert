@@ -121,6 +121,14 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | `--with-optional` | Also install the **optional** tools (rsvg-convert, ImageMagick, fontconfig, DejaVu fonts, mermaid-cli). Implies `--setup`.          |
 | `-h, --help`      | Print the flag list.                                                                                                                |
 
+### Engine
+
+| Flag | Effect |
+| --- | --- |
+| `--engine local` | **Default.** The tools installed on this host. |
+| `--engine container` | The tools in a pinned image ([`container/Containerfile`](container/Containerfile)); nothing is installed here. Same flags, same output. Also `HOLO_CONVERT_ENGINE=container`. See [Container engine](#container-engine). |
+| `--runtime podman\|docker` | The container runtime. Default: podman if present, else docker. Also `HOLO_CONVERT_RUNTIME`. |
+
 ---
 
 ## Configuration
@@ -293,6 +301,28 @@ Checked at runtime and **never installed automatically**: run `--setup` _(or `--
 
 ---
 
+## Container engine
+
+`--engine container` runs this same script inside an image that holds only the tools:
+
+| In the image | Not in the image |
+| --- | --- |
+| pandoc, XeLaTeX with every package `header.tex` and pandoc's template load, python3 + lxml, fontconfig + DejaVu, `rsvg-convert` | mermaid-cli (it needs a headless Chromium): mermaid blocks stay as code, as on any host without `mmdc` |
+
+```sh
+holo-convert.sh --setup --engine container                        # build the image once
+holo-convert.sh --engine container --from md --to pdf --toc doc.md
+```
+
+- **Nothing is installed on the host** - the answer for an immutable desktop (Bazzite, Silverblue) where `--setup` would otherwise layer packages or need Homebrew, and a pinned toolchain everywhere else.
+- **The engine and `.fcc/` are mounted read-only from this checkout**, not copied into the image, so the filters always match the script you run.
+- **Every folder a conversion touches** - the working directory, each input's folder, the output folder - is mounted at **its own path** inside, so no argument needs rewriting.
+- **No network** (`--network none`), and the container runs **as you**: outputs belong to you, not root (`--userns=keep-id` on podman, `--user` on docker). SELinux labels are left alone (`label=disable`) rather than relabelling home folders.
+- **The image tag is the Containerfile's content hash.** Edit the file and the engine asks for a rebuild instead of running yesterday's tools. `HOLO_CONVERT_IMAGE` overrides the tag.
+- Fonts are the image's (Latin Modern, DejaVu): a `--font` that exists only on your host falls back to pandoc's default, as it would on any host without it.
+
+---
+
 ## Tests
 
 ```sh
@@ -300,8 +330,15 @@ tests/widen-tables.sh
 ```
 
 ```sh
-tests/run-all.sh          # both files; skips what the host cannot run
+tests/run-all.sh          # every file; skips what the host cannot run
 ```
+
+**26 checks** in `tests/container-engine.sh` over `--engine container`, against a
+stub runtime that records what it is asked: which image, which mounts (each at
+its own path, the engine read-only), no network, as the caller rather than
+root, `--engine`/`--runtime`/`--setup` never reaching the inner run, a missing
+image refused with the fix named, and a different tag once the Containerfile
+changes. Nothing is built; a real conversion in the image was checked by hand.
 
 **14 checks** in `tests/pkg-manager.sh` over the `--setup` host selection above,
 driven against a fabricated `PATH` and a fake ostree marker — so hosts this

@@ -1,0 +1,31 @@
+# Tools for holo-convert's container engine (`--engine container`).
+#
+# Only the TOOLS live here: pandoc, XeLaTeX with every package
+# .fcc/pdf/header.tex loads, python3 + lxml for the DOCX passes, fontconfig with
+# DejaVu, and rsvg-convert for SVG images. The engine script and its .fcc/
+# assets are NOT copied in - they are mounted read-only from the checkout that
+# runs them, so the filters always match the engine version in use.
+#
+# Pinned by its base image tag; the image tag holo-convert uses is derived from
+# this file's content, so editing it asks for a rebuild (`--setup`).
+#
+# Not included: mermaid-cli. It needs a headless Chromium (hundreds of MB);
+# without it, mermaid blocks are left as code, as on any host without mmdc.
+FROM debian:trixie-20260918-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+        bash ca-certificates \
+        pandoc \
+        texlive-xetex texlive-latex-recommended texlive-latex-extra \
+        texlive-fonts-recommended lmodern \
+        # soul: pandoc's strikethrough (~~text~~). Debian ships it here, not in latex-extra.
+        texlive-plain-generic \
+        python3 python3-lxml \
+        fontconfig fonts-dejavu \
+        librsvg2-bin \
+ && rm -rf /var/lib/apt/lists/* \
+ && fc-cache -f >/dev/null
+
+# Runs as the caller's uid (passed by holo-convert), which has no home here.
+ENV HOME=/tmp

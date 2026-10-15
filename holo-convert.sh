@@ -1892,6 +1892,18 @@ SETUP
     holo-convert.sh --setup --from md --to pdf doc.md   install PDF deps, then convert
 
 By default (no --setup) engine dependencies are CHECKED but never installed.
+
+ENGINE
+  --engine local|container           local (default): the tools on this host.
+                                     container: the tools in a pinned image
+                                     (container/Containerfile); nothing is
+                                     installed here. Same flags, same output.
+                                     Also: HOLO_CONVERT_ENGINE.
+  --runtime podman|docker            container runtime (default: podman if
+                                     present, else docker). Also: HOLO_CONVERT_RUNTIME.
+    holo-convert.sh --setup --engine container                 build the image once
+    holo-convert.sh --engine container --from md --to pdf doc.md
+  The image holds no mermaid-cli: mermaid blocks stay as code there.
 EOF
 }
 
@@ -2119,6 +2131,143 @@ guard_deps() {
     enote "dependencies OK for ${SOURCE_FORMAT}->${OUTPUT_FORMAT} (pandoc ${PANDOC_VERSION:-?})."
 }
 
+# -----------------------------------------------------------------------------
+# Container engine (--engine container)
+#
+# Runs THIS script inside an image that holds only the tools
+# (container/Containerfile): pandoc, XeLaTeX with the packages header.tex
+# loads, python3 + lxml, fonts, rsvg-convert. Nothing is installed on the host,
+# and the tool versions are the image's - which is what an immutable host
+# (Bazzite, Silverblue) needs, and what pins them everywhere else.
+#
+# The script and .fcc/ are mounted read-only from this checkout, so the filters
+# always match the engine. Every directory the conversion touches - the working
+# directory, each input's folder, the output folder - is mounted at the SAME
+# path inside, so no argument needs rewriting. The network is off: converting
+# needs none, and a document should not be able to reach anything.
+# -----------------------------------------------------------------------------
+
+CONTAINERFILE="${SCRIPT_DIR}/container/Containerfile"
+HC_ENGINE="${HOLO_CONVERT_ENGINE:-local}"     # local | container
+HC_RUNTIME="${HOLO_CONVERT_RUNTIME:-}"        # podman | docker (empty: podman if present, else docker)
+HC_ARGS=()
+
+# The image tag is the Containerfile's content hash: edit the file and the old
+# image no longer matches, so the engine asks for a rebuild instead of quietly
+# running yesterday's tools. HOLO_CONVERT_IMAGE overrides it.
+container_image() {
+    if [[ -n "${HOLO_CONVERT_IMAGE:-}" ]]; then printf '%s' "$HOLO_CONVERT_IMAGE"; return; fi
+    [[ -f "$CONTAINERFILE" ]] || edie "container/Containerfile not found next to the engine (${CONTAINERFILE})."
+    local sum
+    sum="$( { sha256sum "$CONTAINERFILE" 2>/dev/null || shasum -a 256 "$CONTAINERFILE"; } | cut -c1-12)"
+    printf 'localhost/holo-convert-tools:%s' "$sum"
+}
+
+container_runtime() {
+    local rt="$HC_RUNTIME"
+    if [[ -z "$rt" ]]; then
+        if command -v podman &>/dev/null; then rt=podman
+        elif command -v docker &>/dev/null; then rt=docker
+        else edie "--engine container needs podman or docker on PATH."; fi
+    fi
+    case "$rt" in podman|docker) ;; *) edie "--runtime must be podman or docker, got '${rt}'." ;; esac
+    command -v "$rt" &>/dev/null || edie "${rt} not found on PATH."
+    printf '%s' "$rt"
+}
+
+_physical_dir() { (cd "$1" 2>/dev/null && pwd -P); }
+
+# The host directories a conversion with these arguments reads or writes, one
+# per line: the working directory, the folder of every argument that names an
+# existing path (inputs, --image, --reference, --logo), and the output folder,
+# created first so it can be mounted. Generic on purpose: a list of path flags
+# would quietly stop covering the next one added.
+container_mounts() {
+    local -a dirs=()
+    local arg prev="" out="" d
+    dirs+=("$(pwd -P)")
+    for arg in "$@"; do
+        if [[ "$prev" == -o || "$prev" == --output ]]; then out="$arg"; fi
+        prev="$arg"
+        if [[ -d "$arg" ]]; then
+            d="$(_physical_dir "$arg")"
+        elif [[ -e "$arg" ]]; then
+            d="$(_physical_dir "$(dirname "$arg")")"
+        else
+            continue
+        fi
+        [[ -n "$d" ]] && dirs+=("$d")
+    done
+    if [[ -n "$out" ]]; then
+        mkdir -p "$out" || edie "cannot create output folder: $out"
+        dirs+=("$(_physical_dir "$out")")
+    fi
+    printf '%s\n' "${dirs[@]}" | sort -u
+}
+
+# Split --engine / --runtime out of the arguments (up to a `--`), so neither
+# mode sees them. The rest lands in HC_ARGS.
+engine_preparse() {
+    HC_ARGS=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --engine)  [[ $# -ge 2 ]] || edie "--engine needs a value: local or container"
+                       HC_ENGINE="$2"; shift 2 ;;
+            --runtime) [[ $# -ge 2 ]] || edie "--runtime needs a value: podman or docker"
+                       HC_RUNTIME="$2"; shift 2 ;;
+            --)        HC_ARGS+=("$@"); break ;;
+            *)         HC_ARGS+=("$1"); shift ;;
+        esac
+    done
+    case "$HC_ENGINE" in local|container) ;; *) edie "--engine must be local or container, got '${HC_ENGINE}'." ;; esac
+}
+
+run_in_container() {
+    local rt image setup=false a passthrough=false
+    local -a inner=()
+    rt="$(container_runtime)"
+    image="$(container_image)"
+    for a in "$@"; do
+        if [[ "$passthrough" == true ]]; then inner+=("$a"); continue; fi
+        case "$a" in
+            --)              passthrough=true; inner+=("$a") ;;
+            --setup)         setup=true ;;
+            --with-optional) setup=true
+                             enote "--with-optional: the image already holds the optional tools, except mermaid-cli." ;;
+            *)               inner+=("$a") ;;
+        esac
+    done
+
+    if [[ "$setup" == true ]]; then
+        enote "building ${image} with ${rt} - the first build downloads TeX Live and takes several minutes..."
+        "$rt" build -t "$image" -f "$CONTAINERFILE" "${SCRIPT_DIR}/container" || edie "image build failed."
+        if [[ ${#inner[@]} -eq 0 ]]; then enote "image ready: ${image}"; exit 0; fi
+    fi
+    "$rt" image inspect "$image" &>/dev/null \
+        || edie "container image ${image} is not built - run: holo-convert.sh --setup --engine container"
+
+    local -a run=(run --rm --network none -w "$(pwd -P)"
+        -e HOME=/tmp -e HOLO_CONVERT_ENGINE=local
+        # Bind mounts of home folders on an SELinux host (Fedora, Bazzite)
+        # would otherwise need relabelling, which is not ours to do to them.
+        --security-opt label=disable)
+    # Files written into the mounts belong to the caller, not to root.
+    if [[ "$rt" == podman ]]; then run+=(--userns=keep-id); else run+=(--user "$(id -u):$(id -g)"); fi
+    [[ -t 1 ]] && run+=(-t)
+
+    local d script_rw=false
+    while IFS= read -r d; do
+        [[ "$d" == / ]] && edie "refusing to mount / into the container - run from, and convert files in, a folder."
+        [[ "$d" == "$SCRIPT_DIR" ]] && script_rw=true
+        run+=(-v "${d}:${d}")
+    done < <(container_mounts ${inner[@]+"${inner[@]}"})
+    # The engine itself, read-only - unless the conversion happens in the
+    # checkout's own folder, which is then already mounted read-write.
+    [[ "$script_rw" == true ]] || run+=(-v "${SCRIPT_DIR}:${SCRIPT_DIR}:ro")
+
+    "$rt" "${run[@]}" "$image" bash "${SCRIPT_DIR}/holo-convert.sh" ${inner[@]+"${inner[@]}"}
+}
+
 # Parse engine flags into the same globals the select_* prompts would set.
 # Positional (non-flag) arguments become the input file list.
 parse_args() {
@@ -2259,6 +2408,11 @@ main_engine() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     case "${1:-}" in
         ""|-h|--help) usage ;;
-        *)            main_engine "$@" ;;
+        *)            engine_preparse "$@"
+                      if [[ "$HC_ENGINE" == container ]]; then
+                          run_in_container ${HC_ARGS[@]+"${HC_ARGS[@]}"}
+                      else
+                          main_engine ${HC_ARGS[@]+"${HC_ARGS[@]}"}
+                      fi ;;
     esac
 fi
