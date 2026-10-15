@@ -658,7 +658,11 @@ detect_mono_font() {
         fi
     fi
 
-    printf '%s\n' "${font_tex_line}" > "$monofont_tex"
+    # Guarded: \setmonofont is fontspec's, which pandoc's template loads only
+    # for XeLaTeX and LuaLaTeX. Unguarded, --pdf-engine pdflatex stopped on
+    # "Undefined control sequence" every time; now pdflatex skips the line and
+    # code keeps LaTeX's own monospace font.
+    printf '%s\n' '\ifdefined\setmonofont' "  ${font_tex_line}" '\fi' > "$monofont_tex"
 
     MONOFONT_TEX="$monofont_tex"
     success "Monospace font: ${chosen_font} → $(basename "$monofont_tex")"

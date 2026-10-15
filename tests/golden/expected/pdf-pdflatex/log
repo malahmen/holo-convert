@@ -11,10 +11,6 @@
 == Converting Files ==
 [info]  Output directory: ./output
 [info]  Converting titled.tmp.md → titled.pdf …
-Error producing PDF.
-! Undefined control sequence.
-l.183 \setmonofont
+[ok]    titled.pdf ✓
 
-[warn]  Failed to convert: ./output/titled.tmp.md
-
-[info]  Conversion complete — 0 succeeded, 1 failed.
+[info]  Conversion complete — 1 succeeded, 0 failed.

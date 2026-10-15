@@ -21,9 +21,9 @@
 [info]  Converting features.tmp.md → features.pdf …
 [render-mermaid] WARNING: mmdc not found — run 'holo-convert.sh --with-optional' (installs mermaid-cli via npm), or: npm install -g @mermaid-js/mermaid-cli
 [WARNING] [makePDF] LaTeX Warning: Hyper reference `nowhere-at-all' on page 1
-  undefined on input line 277.
+  undefined on input line 279.
 [WARNING] [makePDF] LaTeX Warning: Hyper reference `tabels' on page 1 undefined
-  on input line 277.
+  on input line 279.
 [WARNING] [makePDF] LaTeX Warning: There were undefined references.
 [WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font [lmroman10-regular]:mapping=t
 [WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font DejaVu Sans Mono Oblique/OT:s

@@ -12,7 +12,7 @@
 [info]  Output directory: ./output
 [info]  Converting _concat.tmp.md → part-a.pdf …
 [WARNING] [makePDF] LaTeX Warning: Hyper reference `part-a' on page 2 undefined
-  on input line 213.
+  on input line 215.
 [WARNING] [makePDF] LaTeX Warning: There were undefined references.
 [ok]    part-a.pdf ✓
 

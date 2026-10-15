@@ -239,7 +239,9 @@
 \AtBeginDocument{%
   \pretocmd{\toprule}{\rowcolor{tableheader}}{}{}%
 }
-\setmonofont{DejaVu Sans Mono}
+\ifdefined\setmonofont
+  \setmonofont{DejaVu Sans Mono}
+\fi
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
