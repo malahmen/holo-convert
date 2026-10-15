@@ -1,4 +1,4 @@
-./output/special-title.tmp.md
+<WORK>/output/.holo-run-<RUN>/special-title.tmp.md
 -o
 ./output/special-title.pdf
 --from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline

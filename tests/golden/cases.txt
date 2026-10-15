@@ -23,6 +23,8 @@ pdf-fence-title | fenced-title.md        | --from md --to pdf --title-page
 pdf-quoted-title | quoted-title.md       | --from md --to pdf --title-page
 pdf-concat-quote | quote-h1.md part-b.md | --from md --to pdf --concat
 docx-quoted-title | quoted-title.md      | --from md --to docx --title-page --letterhead --date "1 January 2026"
+pdf-empty       | empty.md               | --from md --to pdf
+docx-upper      | UPPER.MD               | --from md --to docx
 docx-default    | features.md            | --from md --to docx
 docx-plain-toc  | features.md            | --from md --to docx --reference plain --toc
 docx-noref      | features.md            | --from md --to docx --reference none

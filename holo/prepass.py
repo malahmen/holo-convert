@@ -212,7 +212,7 @@ def apply_svg_raster(tmp: str, srcdir: str):
 # --- title page -----------------------------------------------------------------------------
 
 def resolve_title_page_yaml(source_path: str) -> str:
-    flat = sh.strip_suffix(source_path, ".md").replace("/", "_")
+    flat = re.sub(r"\.md$", "", source_path, flags=re.IGNORECASE).replace("/", "_")
     specific = f"{TITLE_PAGES_DIR}/{flat}.yaml"
     default = f"{TITLE_PAGES_DIR}/default.yaml"
     if os.path.isfile(specific):

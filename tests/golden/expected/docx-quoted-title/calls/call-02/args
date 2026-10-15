@@ -1,4 +1,4 @@
-./output/quoted-title.tmp.md
+<WORK>/output/.holo-run-<RUN>/quoted-title.tmp.md
 -o
 ./output/quoted-title.docx
 --from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline

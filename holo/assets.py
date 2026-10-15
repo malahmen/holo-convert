@@ -34,7 +34,10 @@ def _same(a: str, b: str) -> bool:
 def _sync(src: str, dest: str) -> bool:
     """Copy src over dest unless identical; True if it copied."""
     if not os.path.isfile(dest) or not _same(src, dest):
-        shutil.copyfile(src, dest)
+        # Atomically, as sh.write_shared: another run may be reading dest.
+        part = f"{dest}.{os.getpid()}.part"
+        shutil.copyfile(src, part)
+        os.replace(part, dest)
         return True
     return False
 

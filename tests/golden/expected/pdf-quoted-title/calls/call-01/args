@@ -1,4 +1,4 @@
-./output/quoted-title.tmp.md
+<WORK>/output/.holo-run-<RUN>/quoted-title.tmp.md
 --from
 markdown+gfm_auto_identifiers
 --to

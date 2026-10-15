@@ -38,6 +38,8 @@ COMMON
   --fix-links                        also write confident anchor-link fixes to the SOURCE
                                        (default only reconciles the output copy)
   --no-check-links                   skip the internal-link reconcile/check (on by default)
+  --[no-]open                        open each output in its viewer when done (default on;
+                                       a batch opens one viewer per file)
 
 DOCX
   --reference letterhead|plain|none|PATH   reference doc (default: plain)
@@ -115,6 +117,7 @@ _BOOL = {
     "--tp-pagenum": ("tp_pagenum", "true"), "--no-tp-pagenum": ("tp_pagenum", "false"),
     "--fix-links": ("fix_links", True), "--no-check-links": ("check_links", False),
     "--setup": ("setup_deps", True),
+    "--open": ("open_output", True), "--no-open": ("open_output", False),
 }
 
 

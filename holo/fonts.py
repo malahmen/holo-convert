@@ -104,7 +104,7 @@ def detect_mono_font():
             chosen, line = "Courier New", r"\setmonofont{Courier New}"
             warn("No DejaVu/Noto/Liberation Mono found — code falls back to Courier New. Install one with: holo-convert.sh --with-optional (or: sudo apt-get install fonts-dejavu).")
     # Guarded: \setmonofont is fontspec's, loaded only for XeLaTeX and LuaLaTeX.
-    sh.write(monofont_tex, "\\ifdefined\\setmonofont\n  " + line + "\n\\fi\n")
+    sh.write_shared(monofont_tex, "\\ifdefined\\setmonofont\n  " + line + "\n\\fi\n")
     S.monofont_tex = monofont_tex
     success(f"Monospace font: {chosen} → {sh.basename(monofont_tex)}")
 
@@ -203,6 +203,6 @@ def detect_fallback_fonts():
            .replace("@RANGES@", ranges))
     path = f"{FCC_DIR}/pdf/fallback.tex"
     os.makedirs(f"{FCC_DIR}/pdf", exist_ok=True)
-    sh.write(path, tex)
+    sh.write_shared(path, tex)
     S.fallback_tex = path
     info("Characters Latin Modern lacks (Greek, Cyrillic, arrows, ✓, box drawing) fall back to DejaVu.")

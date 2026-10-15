@@ -23,6 +23,7 @@ import zipfile
 from xml.dom import minidom
 
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
+RUN_DIR = re.compile(r"\.holo-run-[A-Za-z0-9_]+")
 
 
 def pretty(xml: bytes) -> str:
@@ -94,6 +95,8 @@ def normalise(result: str, work: str, engine_dir: str):
             new = ANSI.sub("", text)
             for old, placeholder in subs:
                 new = new.replace(old, placeholder)
+            # Each run's own working folder (holo/convert.py work_dir) has a random name.
+            new = RUN_DIR.sub(".holo-run-<RUN>", new)
             for form in today_forms():
                 new = new.replace(form, "<TODAY>")
             if new != text:

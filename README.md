@@ -52,7 +52,7 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | ---------------------------------------------- | --------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
 | `--from md\|docx`                              | all             | — (required) | Source format.                                                                                              |
 | `--to pdf\|docx\|md`                           | all             | — (required) | Output format. Valid pairs: md→pdf, md→docx, docx→md.                                                       |
-| `<file>...`                                    | all             | — (required) | Input file(s). Paths are relative to the current directory.                                                 |
+| `<file>...`                                    | all             | — (required) | Input file(s). Paths are relative to the current directory. The extension may be in any case (`NOTES.MD` → `NOTES.pdf`). An empty `.md` is reported as "nothing to convert" and counts as failed. |
 | `-o, --output DIR`                             | all             | `./output`   | Output directory (created if missing).                                                                      |
 | `--toc` / `--no-toc`                           | md→pdf, md→docx | off          | Build a table of contents from the headings. With a title page, the TOC is placed **after** the cover.      |
 | `--toc-depth N`                                | md→pdf, md→docx | `3`          | Heading levels to include in the TOC.                                                                       |
@@ -62,6 +62,7 @@ A flag listed for a format it doesn't apply to is simply ignored.
 | `--concat-pagebreak` / `--no-concat-pagebreak` | md→pdf, md→docx | on           | Insert a page break between concatenated files.                                                             |
 | `--fix-links`                                  | md→pdf, md→docx | off          | Also write confident internal anchor-link fixes back into the **source** `.md`. By default only the working copy handed to pandoc is reconciled, so the output resolves and the source stays as authored. |
 | `--no-check-links`                             | md→pdf, md→docx | check on     | Skip the internal anchor-link check/reconcile entirely (needs `python3`; never fatal).                       |
+| `--open` / `--no-open`                         | all             | on           | Open each output in its default viewer when it is done. In a batch that is one viewer per file: `--no-open` for batches and scripts. |
 
 ### Markdown pre-passes (source clean-up)
 
@@ -280,6 +281,8 @@ It becomes a real page break in every output: `\newpage` in LaTeX/PDF, a Word pa
 - On every run the bundled `.fcc/pdf/*` and `.fcc/docx/*` assets _(filters, code theme, reference docs, post-processors)_ are synced into a working `./.fcc/` in the current directory, **overwriting** local copies so a stale filter never lingers. `monofont.tex` and `fallback.tex` are regenerated there for each `md→pdf` run.
 - Only `./.fcc/docx/config` and `./.fcc/title-pages/*` are yours to edit per project: they are never overwritten (the bundled `default.yaml`/`default.md` title page is seeded only when missing).
 - Output is written to `./output/` (or `-o DIR`). Both `.fcc/` and `output/` are runtime artifacts, keep them out of version control.
+- Working copies (`<name>.tmp.md`, `_concat.tmp.md`) live in a folder of the run's own inside the output folder, `.holo-run-XXXXXX/`, removed when the run ends - also on Ctrl-C and `SIGTERM`. Several runs into one output folder therefore no longer overwrite each other's working copies (their outputs still share the folder: give them different names). The `.fcc/` files every run regenerates are replaced atomically.
+- DOCX → Markdown: images go to `output/media/<name>/`, and the links in the `.md` are relative to it (`media/<name>/...`), so they resolve from the `.md`'s own folder.
 
 ---
 
@@ -343,13 +346,15 @@ holo-convert.sh --engine container --from md --to pdf --toc doc.md
 ```sh
 tests/widen-tables.sh
 tests/breakable.sh
+tests/render-mermaid.sh   # mmdc found and run under a path with spaces and quotes
+tests/runs.sh             # side-by-side runs, a killed run, --no-open
 ```
 
 ```sh
 tests/run-all.sh          # every file; skips what the host cannot run
 ```
 
-**The golden harness** — `tests/golden.sh` — puts 23 reference conversions
+**The golden harness** — `tests/golden.sh` — puts 29 reference conversions
 (`tests/golden/cases.txt`: PDF and DOCX with every option family, DOCX→Markdown,
 `--concat`, `--fix-links`) through the engine **in the pinned tools image**, and
 compares the results exactly with `tests/golden/expected/`, recorded from this

@@ -1,6 +1,6 @@
-generated.docx
+<WORK>/generated.docx
 -o
-./output/generated.md
+generated.md
 --from=docx
 --to=gfm
---extract-media=./output/media/generated
+--extract-media=media/generated

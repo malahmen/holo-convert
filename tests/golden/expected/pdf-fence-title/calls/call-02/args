@@ -1,4 +1,4 @@
-./output/fenced-title.tmp.md
+<WORK>/output/.holo-run-<RUN>/fenced-title.tmp.md
 -o
 ./output/fenced-title.pdf
 --from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline

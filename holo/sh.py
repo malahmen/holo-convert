@@ -85,6 +85,24 @@ def read(path: str) -> str:
         return fh.read()
 
 
+def write_shared(path: str, text: str) -> None:
+    """write(), atomically: into a temporary file beside it, then renamed over
+    it. For the ./.fcc/ files every run regenerates (monofont.tex,
+    fallback.tex): two runs in one folder would otherwise each truncate the
+    file while the other's LaTeX is reading it."""
+    import tempfile
+    fd, part = tempfile.mkstemp(prefix=".", suffix=".part", dir=os.path.dirname(path) or ".")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", errors="surrogateescape", newline="") as fh:
+            fh.write(text)
+        os.chmod(part, 0o644)
+        os.replace(part, path)
+    except BaseException:
+        if os.path.exists(part):
+            os.remove(part)
+        raise
+
+
 def write(path: str, text: str) -> None:
     with open(path, "w", encoding="utf-8", errors="surrogateescape", newline="") as fh:
         fh.write(text)

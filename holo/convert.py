@@ -1,9 +1,11 @@
 """The conversions themselves: md->pdf, md->docx, docx->md, --concat, the batch."""
+import atexit
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 from . import assets, sh
 from .deps import highlight_theme_arg
@@ -15,29 +17,49 @@ from .ui import echo_blank, edie, enote, header, info, success, warn
 
 
 def open_file(path: str):
+    if not S.open_output:
+        return
     if sh.which("xdg-open"):
         subprocess.Popen(["xdg-open", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     elif sh.which("open"):
         sh.run(["open", path])
 
 
+def work_dir() -> str:
+    """This run's own folder for its working copies (<name>.tmp.md,
+    _concat.tmp.md), inside the output folder, removed when the run ends -
+    also on Ctrl-C and SIGTERM, which exit through sys.exit. Fixed names in
+    the output folder itself let two runs into one folder overwrite each
+    other's copies, and a killed run left them behind."""
+    if not S.work_dir:
+        os.makedirs(S.output_dir, exist_ok=True)
+        S.work_dir = tempfile.mkdtemp(prefix=".holo-run-", dir=S.output_dir)
+        atexit.register(shutil.rmtree, S.work_dir, True)
+    return S.work_dir
+
+
+def strip_source_ext(name: str) -> str:
+    """name without its source extension, in any case: UPPER.MD is UPPER, not
+    UPPER.MD (which made UPPER.MD.docx)."""
+    suffix = f".{S.source_format}"
+    if len(name) > len(suffix) and name.lower().endswith(suffix.lower()):
+        return name[: -len(suffix)]
+    return name
+
+
 def resolve_output_path(source_path: str, out_dir: str, ext: str):
     """<out>/<base>.<ext>, or a path-derived name when another input of this
     run shares the base name. A file already in the output folder is not a
     collision: re-running overwrites it."""
-    suffix = f".{S.source_format}"
-    base = sh.basename(source_path, suffix)
+    base = strip_source_ext(sh.basename(source_path))
     dupes = 0
     for line in S.selected_files:
         if not line:
             continue
-        f = line.rsplit("/", 1)[-1]
-        if len(f) > len(suffix) and f.endswith(suffix):
-            f = f[: -len(suffix)]
-        if f == base:
+        if strip_source_ext(line.rsplit("/", 1)[-1]) == base:
             dupes += 1
     if dupes > 1:
-        flat = sh.strip_suffix(source_path, suffix).replace("/", "_")
+        flat = strip_source_ext(source_path).replace("/", "_")
         info(f"Name collision for '{base}.{ext}' ({dupes} inputs share it) — using path-derived name: {flat}.{ext}")
         S.output_file = f"{out_dir}/{flat}.{ext}"
     else:
@@ -124,7 +146,7 @@ def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
         success(f"{sh.basename(output_file)} ✓")
         open_file(output_file)
         return True
-    warn(f"Failed to convert: {input_file}")
+    warn(f"Failed to convert: {name_source}")
     return False
 
 
@@ -150,7 +172,7 @@ def convert_md_to_docx(input_file: str, name_source: str = "") -> bool:
             args.append(highlight_theme_arg(theme))
     enote(f"Converting {sh.basename(input_file)} → {sh.basename(output_file)} ...")
     if sh.run(["pandoc", *args]) != 0:
-        warn(f"Failed to convert: {input_file}")
+        warn(f"Failed to convert: {name_source}")
         return False
     docx_post(fold_docx_pagebreaks, output_file)
     docx_post(apply_docx_fonts, output_file)
@@ -171,10 +193,16 @@ def convert_md_to_docx(input_file: str, name_source: str = "") -> bool:
 def convert_docx_to_md(input_file: str) -> bool:
     resolve_output_path(input_file, S.output_dir, "md")
     output_file = S.output_file
-    media_dir = f"{S.output_dir}/media/{sh.basename(output_file, '.md')}"
-    args = [input_file, "-o", output_file, "--from=docx", f"--to={S.md_variant}", f"--extract-media={media_dir}"]
+    media_rel = f"media/{sh.basename(output_file, '.md')}"
+    media_dir = f"{S.output_dir}/{media_rel}"
+    # Run from the output folder: pandoc writes image links as the path given
+    # to --extract-media, so they are relative to the .md that uses them.
+    # (From the working directory they read output/media/..., broken from
+    # the .md's own folder.)
+    args = [os.path.abspath(input_file), "-o", sh.basename(output_file), "--from=docx", f"--to={S.md_variant}",
+            f"--extract-media={media_rel}"]
     enote(f"Converting {sh.basename(input_file)} → {sh.basename(output_file)} ...")
-    if sh.run(["pandoc", *args]) != 0:
+    if sh.run(["pandoc", *args], cwd=S.output_dir) != 0:
         warn(f"Failed to convert: {input_file}")
         return False
     success(f"{sh.basename(output_file)} ✓")
@@ -186,15 +214,24 @@ def convert_docx_to_md(input_file: str) -> bool:
     return True
 
 
+def _is_blank(path: str) -> bool:
+    """Nothing but whitespace. (An empty file made LaTeX fail with only
+    "Error producing PDF".) Unreadable files are left to the copy below."""
+    try:
+        return sh.read(path).strip(sh.SPACE) == ""
+    except OSError:
+        return False
+
+
 def run_concat() -> bool:
     """Every input into one working copy, converted once. The first "# H1"
     becomes the document title; inputs are separated by an optional page break."""
-    combined = f"{S.output_dir}/_concat.tmp.md"
+    combined = f"{work_dir()}/_concat.tmp.md"
     first_input, title = "", ""
     sh.write(combined, "")
     for idx, input_file in enumerate([f for f in S.selected_files if f], 1):
         first_input = first_input or input_file
-        part = f"{S.output_dir}/_part.tmp.md"
+        part = f"{work_dir()}/_part.tmp.md"
         try:
             shutil.copyfile(input_file, part)
         except OSError:
@@ -273,8 +310,12 @@ def run_conversions() -> bool:
     else:
         for input_file in S.selected_files:
             effective, tmp = input_file, ""
+            if S.source_format == "md" and _is_blank(input_file):
+                warn(f"{input_file} is empty — nothing to convert.")
+                failed += 1
+                continue
             if S.source_format == "md":
-                tmp = f"{S.output_dir}/{sh.basename(input_file, '.md')}.tmp.md"
+                tmp = f"{work_dir()}/{strip_source_ext(sh.basename(input_file))}.tmp.md"
                 try:
                     shutil.copyfile(input_file, tmp)
                 except OSError:

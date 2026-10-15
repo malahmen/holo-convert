@@ -1,4 +1,4 @@
-./output/_concat.tmp.md
+<WORK>/output/.holo-run-<RUN>/_concat.tmp.md
 -o
 ./output/part-a.docx
 --from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline

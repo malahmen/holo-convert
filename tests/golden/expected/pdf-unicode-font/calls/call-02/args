@@ -1,4 +1,4 @@
-./output/unicode.tmp.md
+<WORK>/output/.holo-run-<RUN>/unicode.tmp.md
 -o
 ./output/unicode.pdf
 --from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline
