@@ -13,7 +13,9 @@ CANONICAL_FCC = os.path.join(REPO, ".fcc")
 FCC_DIR = ".fcc"
 TITLE_PAGES_DIR = ".fcc/title-pages"
 PANDOC_MIN = "2.10"
-MD_INPUT_FORMAT = "markdown+gfm_auto_identifiers"
+# + lists_without_preceding_blankline: a list right after a paragraph line, as
+# GitHub reads it (see holo-convert.sh).
+MD_INPUT_FORMAT = "markdown+gfm_auto_identifiers+lists_without_preceding_blankline"
 DOCX_DEFAULT_REFERENCE = ".fcc/docx/reference.docx"
 DOCX_PLAIN_REFERENCE = ".fcc/docx/reference-plain.docx"
 DOCX_CONFIG = ".fcc/docx/config"

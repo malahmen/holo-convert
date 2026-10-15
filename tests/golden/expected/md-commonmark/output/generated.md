@@ -23,6 +23,9 @@ anchor](#nowhere-at-all) and a near miss to [the tables](#tabels).
     - nested bullet
     - another
 
+**A label, then a list with no blank line between:** - first, as GitHub
+renders it - second - nested
+
 Term  
 Its definition.
 

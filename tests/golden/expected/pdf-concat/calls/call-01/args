@@ -1,7 +1,7 @@
 ./output/_concat.tmp.md
 -o
 ./output/part-a.pdf
---from=markdown+gfm_auto_identifiers
+--from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline
 --pdf-engine=xelatex
 -H
 .fcc/pdf/header.tex

@@ -45,7 +45,14 @@ MD_VARIANT="gfm"          # docx→md output variant (overridable via --md-varia
 # internal anchor links authored for GitHub/Starlight resolve to the right
 # heading. Plain `markdown` strips leading numbers/punctuation, so those links
 # point at nothing and Word/Pages jump to the first page.
-MD_INPUT_FORMAT="markdown+gfm_auto_identifiers"
+#
+# lists_without_preceding_blankline, for the same reason: GitHub starts a list
+# on the line right after a paragraph ("**Status:**" then "- item"), pandoc's
+# markdown only after a blank line - without it, every such list was glued
+# onto its label as one paragraph ("Status: - a - b"). One difference remains:
+# GitHub lets only "1." interrupt a paragraph, pandoc any number, so a
+# hard-wrapped line that happens to begin "3. ..." starts a list here.
+MD_INPUT_FORMAT="markdown+gfm_auto_identifiers+lists_without_preceding_blankline"
 CHECK_LINKS=true          # warn about internal anchor links that match no heading
 FIX_LINKS=false           # --fix-links: auto-rewrite confident fixes into the SOURCE
 _ENGINE_FONT=""           # deferred --font value (applied once --to is known)

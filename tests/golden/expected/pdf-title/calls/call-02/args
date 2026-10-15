@@ -1,7 +1,7 @@
 ./output/titled.tmp.md
 -o
 ./output/titled.pdf
---from=markdown+gfm_auto_identifiers
+--from=markdown+gfm_auto_identifiers+lists_without_preceding_blankline
 --pdf-engine=xelatex
 -H
 .fcc/pdf/header.tex
