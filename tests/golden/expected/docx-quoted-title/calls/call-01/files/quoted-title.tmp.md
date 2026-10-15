@@ -1,7 +1,7 @@
 
 
 ::: {custom-style="Title"}
-The \Best\ Report: Its Bobs plan
+The "Best" Report: It's Bob's plan
 :::
 
 \newpage

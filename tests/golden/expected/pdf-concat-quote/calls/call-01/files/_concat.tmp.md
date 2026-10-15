@@ -1,5 +1,5 @@
 ---
-title: "He said "hi" & left"
+title: "He said \"hi\" & left"
 ---
 
 

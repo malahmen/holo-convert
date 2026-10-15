@@ -11,7 +11,7 @@
         <w:color w:val="111827"/>
         <w:sz w:val="20"/>
       </w:rPr>
-      <w:t xml:space="preserve">The \Best\ Report: Its Bobs plan</w:t>
+      <w:t xml:space="preserve">The "Best" Report: It's Bob's plan</w:t>
     </w:r>
   </w:p>
   <w:p>
@@ -24,7 +24,7 @@
         <w:color w:val="6B7280"/>
         <w:sz w:val="16"/>
       </w:rPr>
-      <w:t xml:space="preserve">Created By: 'A. O''Brien' (1 January 2026)</w:t>
+      <w:t xml:space="preserve">Created By: A. O'Brien (1 January 2026)</w:t>
     </w:r>
   </w:p>
 </w:hdr>

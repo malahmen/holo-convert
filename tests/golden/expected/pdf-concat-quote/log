@@ -13,10 +13,9 @@
 == Converting Files ==
 [info]  Output directory: ./output
 [info]  Converting _concat.tmp.md → quote-h1.pdf …
-YAML parse exception at line 1, column 17,
-while parsing a block mapping:
-did not find expected key
-Consider enclosing the entire field in 'single quotes'
-[warn]  Failed to convert: ./output/_concat.tmp.md
+[WARNING] [makePDF] LaTeX Warning: Hyper reference `part-a' on page 2 undefined
+  on input line 273.
+[WARNING] [makePDF] LaTeX Warning: There were undefined references.
+[ok]    quote-h1.pdf ✓
 
-[info]  Conversion complete — 0 succeeded, 1 failed.
+[info]  Conversion complete — 1 succeeded, 0 failed.

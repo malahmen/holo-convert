@@ -9,7 +9,7 @@ from . import assets, sh
 from .deps import highlight_theme_arg
 from .docx import (apply_docx_fonts, caption_docx_figures, docx_post, fold_docx_pagebreaks, layout_docx,
                    reconcile_internal_links, shade_docx_tables, stamp_docx_letterhead)
-from .prepass import preprocess_md_tmp
+from .prepass import first_h1, preprocess_md_tmp, yaml_quote
 from .state import FCC_DIR, MD_INPUT_FORMAT, TOC_TITLE, S
 from .ui import echo_blank, edie, enote, header, info, success, warn
 
@@ -186,21 +186,11 @@ def convert_docx_to_md(input_file: str) -> bool:
     return True
 
 
-def _awk_drop_first_h1(text: str) -> str:
-    out, stripped = [], False
-    for line in sh.awk_records(text):
-        if not stripped and line.startswith("# "):
-            stripped = True
-            continue
-        out.append(line)
-    return sh.awk_print(out)
-
-
 def run_concat() -> bool:
     """Every input into one working copy, converted once. The first "# H1"
     becomes the document title; inputs are separated by an optional page break."""
     combined = f"{S.output_dir}/_concat.tmp.md"
-    first_input, first_h1 = "", ""
+    first_input, title = "", ""
     sh.write(combined, "")
     for idx, input_file in enumerate([f for f in S.selected_files if f], 1):
         first_input = first_input or input_file
@@ -211,11 +201,12 @@ def run_concat() -> bool:
             edie(f"--concat: {input_file} became unreadable mid-run — refusing to write a document that is missing it.")
         preprocess_md_tmp(part, input_file, False)
         if idx == 1:
-            for line in sh.read(part).split("\n"):
-                if line.startswith("# "):
-                    first_h1 = line[2:]
-                    break
-            sh.write(part, _awk_drop_first_h1(sh.read(part)))
+            records = sh.awk_records(sh.read(part))
+            h1 = first_h1(records)
+            if h1 >= 0:
+                title = records[h1][2:]
+                del records[h1]
+            sh.write(part, sh.awk_print(records))
         chunk = ""
         if idx > 1 and S.concat_pagebreak:
             chunk += "\n\n\\newpage\n\n"
@@ -223,8 +214,9 @@ def run_concat() -> bool:
         with open(combined, "a", encoding="utf-8", errors="surrogateescape", newline="") as fh:
             fh.write(chunk)
         os.remove(part)
-    if first_h1:
-        sh.write(combined, f'---\ntitle: "{first_h1}"\n---\n\n' + sh.read(combined))
+    if title:
+        # Quoted for YAML: a " in the heading used to end the string early.
+        sh.write(combined, f"---\ntitle: {yaml_quote(title)}\n---\n\n" + sh.read(combined))
     pair = f"{S.source_format}→{S.output_format}"
     if pair == "md→pdf":
         ok = convert_md_to_pdf(combined, first_input)

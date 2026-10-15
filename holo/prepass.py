@@ -13,6 +13,77 @@ from .ui import info, warn
 
 _RULE = re.compile(r"---[ \t\r\v\f]*\Z")
 _FM_END = re.compile(r"(---|\.\.\.)[ \t\r\v\f]*\Z")
+# A fenced code block's opening or closing line: up to three spaces, then
+# three or more backticks or tildes.
+_FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
+
+
+def body_start(records) -> int:
+    """Index of the first line after the leading front matter (0 without one)."""
+    if records and _RULE.match(records[0]):
+        for n in range(1, len(records)):
+            if _FM_END.match(records[n]):
+                return n + 1
+    return 0
+
+
+def first_h1(records) -> int:
+    """Index of the first "# " heading in the body, or -1. Not inside fenced
+    code - a shell comment there is not a title - nor in the front matter,
+    where "# " starts a YAML comment."""
+    fence = ""
+    for i in range(body_start(records), len(records)):
+        line = records[i]
+        m = _FENCE.match(line)
+        if fence:
+            if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) \
+                    and line[m.end():].strip(sh.SPACE) == "":
+                fence = ""
+            continue
+        if m:
+            fence = m.group(1)
+        elif line.startswith("# "):
+            return i
+    return -1
+
+
+def yaml_scalar(raw: str) -> str:
+    """A one-line YAML scalar's value: "double-quoted" with its backslash
+    escapes, 'single-quoted' with '' for a quote, or plain, up to a " #"
+    comment. Quotes inside the value are kept - they used to be deleted, so
+    It's became Its."""
+    s = raw.strip(sh.SPACE)
+    out, i = [], 1
+    if s.startswith('"'):
+        escapes = {'"': '"', "\\": "\\", "/": "/", "n": " ", "t": " ", "0": ""}
+        while i < len(s):
+            if s[i] == "\\" and i + 1 < len(s):
+                out.append(escapes.get(s[i + 1], "\\" + s[i + 1]))
+                i += 2
+                continue
+            if s[i] == '"':
+                break
+            out.append(s[i])
+            i += 1
+        return "".join(out)
+    if s.startswith("'"):
+        while i < len(s):
+            if s[i] == "'":
+                if s[i + 1:i + 2] != "'":
+                    break
+                i += 1
+            out.append(s[i])
+            i += 1
+        return "".join(out)
+    if s.startswith("#"):
+        return ""            # the whole value is a comment
+    m = re.search(r"[ \t]#", s)
+    return (s[:m.start()] if m else s).rstrip(sh.SPACE)
+
+
+def yaml_quote(value: str) -> str:
+    """value as a double-quoted YAML scalar."""
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
 # --- substitutions, rules, wikilinks -------------------------------------------------
@@ -169,12 +240,12 @@ def parse_yaml_field(path: str, field: str) -> str:
         if not whole and _FM_END.match(line):
             return ""
         if line.startswith(field + ":"):
-            return re.sub("^" + re.escape(field) + ":[ \t\r\n\v\f]*", "", line, 1).replace("\r", "")
+            return yaml_scalar(line[len(field) + 1:].replace("\r", ""))
     return ""
 
 
 def extract_title(path: str) -> str:
-    """Front matter title: (quotes removed), else the first "# " heading."""
+    """Front matter title:, else the first "# " heading outside code."""
     records = sh.awk_records(sh.read(path))
     if records and re.match(r"---[ \t\r\v\f]*\Z", records[0]):
         title = ""
@@ -184,15 +255,13 @@ def extract_title(path: str) -> str:
                     continue
                 break
             if line.startswith("title:"):
-                title = re.sub(r"^title:[ \t\r\n\v\f]*", "", line, 1)
+                title = yaml_scalar(line[len("title:"):])
                 break
-        title = sh.subst(title.replace('"', "").replace("'", ""))
+        title = sh.subst(title)
         if title:
             return title
-    for line in records:
-        if line.startswith("# "):
-            return line[2:]
-    return ""
+    i = first_h1(records)
+    return records[i][2:] if i >= 0 else ""
 
 
 def strip_title(path: str) -> str:
@@ -213,12 +282,8 @@ def strip_title(path: str) -> str:
             else:
                 out.append(line)
     else:
-        found = False
-        for line in records:
-            if not found and line.startswith("# "):
-                found = True
-                continue
-            out.append(line)
+        h1 = first_h1(records)
+        out = [line for i, line in enumerate(records) if i != h1]
     return sh.subst(sh.awk_print(out))
 
 
