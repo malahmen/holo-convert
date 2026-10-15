@@ -1,0 +1,1 @@
+[render-mermaid] WARNING: mmdc not found — run 'holo-convert.sh --with-optional' (installs mermaid-cli via npm), or: npm install -g @mermaid-js/mermaid-cli

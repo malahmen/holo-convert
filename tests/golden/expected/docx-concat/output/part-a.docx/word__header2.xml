@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:p>
+    <w:pPr>
+      <w:jc w:val="right"/>
+      <w:spacing w:before="0" w:after="60" w:line="240" w:lineRule="auto"/>
+    </w:pPr>
+    <w:r>
+      <w:rPr>
+        <w:b/>
+        <w:color w:val="111827"/>
+        <w:sz w:val="20"/>
+      </w:rPr>
+      <w:t xml:space="preserve">Part A</w:t>
+    </w:r>
+  </w:p>
+  <w:p>
+    <w:pPr>
+      <w:jc w:val="right"/>
+      <w:spacing w:before="0" w:after="60" w:line="240" w:lineRule="auto"/>
+    </w:pPr>
+    <w:r>
+      <w:rPr>
+        <w:color w:val="6B7280"/>
+        <w:sz w:val="16"/>
+      </w:rPr>
+      <w:t xml:space="preserve">Created By:  (1 January 2026)</w:t>
+    </w:r>
+  </w:p>
+</w:hdr>

@@ -1,0 +1,28 @@
+[info]  dependencies OK for md->pdf (pandoc 3.1.11.1).
+[info]  Synced .fcc/pdf/header.tex (bundled).
+[info]  Synced .fcc/pdf/p10k.theme (bundled).
+[info]  Synced .fcc/pdf/widen-tables.lua (bundled).
+[info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
+[info]  Synced .fcc/pdf/pagebreak.lua (bundled).
+[info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Using .fcc/pdf/header.tex.
+[ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+
+== Converting Files ==
+[info]  Output directory: ./output
+[warn]  Internal link '#nowhere-at-all' matches no heading.
+        No similar heading found.
+[warn]  Internal link '#tabels' matches no heading.
+        Closest heading: '#tables'  (# Tables)  — unsure, please verify.
+[info]  Converting features.tmp.md → features.pdf …
+[render-mermaid] WARNING: mmdc not found — run 'holo-convert.sh --with-optional' (installs mermaid-cli via npm), or: npm install -g @mermaid-js/mermaid-cli
+[WARNING] [makePDF] LaTeX Warning: Hyper reference `nowhere-at-all' on page 1
+  undefined on input line 276.
+[WARNING] [makePDF] LaTeX Warning: Hyper reference `tabels' on page 1 undefined
+  on input line 276.
+[WARNING] [makePDF] LaTeX Warning: There were undefined references.
+[WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font DejaVu Sans Mono Oblique/OT:s
+[WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font DejaVu Sans Mono Oblique/OT:s
+[ok]    features.pdf ✓
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

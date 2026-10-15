@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:p>
+    <w:pPr>
+      <w:tabs>
+        <w:tab w:val="center" w:pos="4680"/>
+        <w:tab w:val="right" w:pos="9350"/>
+      </w:tabs>
+      <w:spacing w:after="0"/>
+      <w:rPr>
+        <w:color w:val="6B7280"/>
+        <w:sz w:val="16"/>
+      </w:rPr>
+    </w:pPr>
+    <w:r>
+      <w:rPr>
+        <w:color w:val="6B7280"/>
+        <w:sz w:val="16"/>
+      </w:rPr>
+      <w:t xml:space="preserve">1 January 2026</w:t>
+    </w:r>
+    <w:r>
+      <w:rPr>
+        <w:b/>
+        <w:color w:val="6B7280"/>
+        <w:sz w:val="16"/>
+      </w:rPr>
+      <w:tab/>
+      <w:t xml:space="preserve">Internal</w:t>
+    </w:r>
+    <w:r>
+      <w:rPr>
+        <w:color w:val="6B7280"/>
+        <w:sz w:val="16"/>
+      </w:rPr>
+      <w:tab/>
+      <w:t xml:space="preserve">Page </w:t>
+    </w:r>
+    <w:fldSimple w:instr=" PAGE ">
+      <w:r>
+        <w:rPr>
+          <w:color w:val="6B7280"/>
+          <w:sz w:val="16"/>
+        </w:rPr>
+        <w:t>1</w:t>
+      </w:r>
+    </w:fldSimple>
+    <w:r>
+      <w:rPr>
+        <w:color w:val="6B7280"/>
+        <w:sz w:val="16"/>
+      </w:rPr>
+      <w:t xml:space="preserve"> / </w:t>
+    </w:r>
+    <w:fldSimple w:instr=" NUMPAGES ">
+      <w:r>
+        <w:rPr>
+          <w:color w:val="6B7280"/>
+          <w:sz w:val="16"/>
+        </w:rPr>
+        <w:t>1</w:t>
+      </w:r>
+    </w:fldSimple>
+  </w:p>
+</w:ftr>

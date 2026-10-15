@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# The golden harness's pandoc: records each call, then runs the real one.
+#
+# Recorded per call, under $GOLDEN_CAPTURE/call-NN/:
+#   args    - the argument list, one per line
+#   files/  - every file an argument names that the ENGINE produced or
+#             changed: the .tmp.md working copy after the pre-passes, generated
+#             LaTeX headers, a title page. Assets copied unchanged from the
+#             engine's own .fcc/ are left out - they are the same bytes as the
+#             repository's.
+#   out.tex - for a PDF, the LaTeX pandoc generates from the same arguments:
+#             a text form of the PDF that can be compared exactly. The real
+#             PDF is still built afterwards, so a LaTeX error still fails.
+#
+# --version / --list-* calls are not recorded: they ask about pandoc, not the
+# document.
+set -uo pipefail
+
+REAL="${GOLDEN_REAL_PANDOC:-/usr/bin/pandoc}"
+case "${1:-}" in --version|--list-*|-v) exec "$REAL" "$@" ;; esac
+
+n=$(( $(cat "$GOLDEN_CAPTURE/.count" 2>/dev/null || echo 0) + 1 ))
+echo "$n" > "$GOLDEN_CAPTURE/.count"
+call="$GOLDEN_CAPTURE/call-$(printf '%02d' "$n")"
+mkdir -p "$call/files"
+printf '%s\n' "$@" > "$call/args"
+
+out="" prev=""
+for a in "$@"; do
+    [[ "$prev" == -o || "$prev" == --output ]] && out="$a"
+    [[ "$a" == --output=* ]] && out="${a#--output=}"
+    val="$a"; [[ "$a" == --*=* ]] && val="${a#*=}"
+    if [[ -f "$val" ]]; then
+        real="$(cd "$(dirname "$val")" && pwd -P)/$(basename "$val")"
+        case "$real" in
+            "$GOLDEN_WORK"/.fcc/*)
+                rel="${real#"$GOLDEN_WORK"/}"
+                cmp -s "$real" "$GOLDEN_ENGINE_DIR/$rel" || cp "$real" "$call/files/$(basename "$real")" ;;
+            "$GOLDEN_WORK"/*)
+                cp "$real" "$call/files/$(basename "$real")" ;;
+        esac
+    fi
+    prev="$a"
+done
+
+if [[ "$out" == *.pdf ]]; then
+    tex=() prev=""
+    for a in "$@"; do
+        if [[ "$prev" == -o || "$prev" == --output ]]; then tex+=("$call/out.tex")
+        elif [[ "$a" == --output=* ]]; then tex+=("--output=$call/out.tex")
+        else tex+=("$a"); fi
+        prev="$a"
+    done
+    "$REAL" "${tex[@]}" -s >/dev/null 2>"$call/out.tex.stderr" || echo "LaTeX capture failed (exit $?)" >> "$call/out.tex.stderr"
+    [[ -s "$call/out.tex.stderr" ]] || rm -f "$call/out.tex.stderr"
+fi
+
+exec "$REAL" "$@"

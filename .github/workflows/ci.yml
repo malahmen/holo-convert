@@ -42,3 +42,19 @@ jobs:
 
       - name: tests
         run: tests/run-all.sh
+
+  golden:
+    # The reference documents through the engine, in the pinned tools image,
+    # compared with tests/golden/expected/ (see tests/golden.sh). Its own job:
+    # building the image downloads TeX Live, minutes the quick checks above
+    # should not wait for.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build the tools image
+        run: bash holo-convert.sh --setup --engine container --runtime docker
+
+      - name: golden
+        run: tests/golden.sh check --runtime docker
+
