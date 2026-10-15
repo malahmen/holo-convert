@@ -333,7 +333,7 @@ tests/widen-tables.sh
 tests/run-all.sh          # every file; skips what the host cannot run
 ```
 
-**The golden harness** — `tests/golden.sh` — puts 19 reference conversions
+**The golden harness** — `tests/golden.sh` — puts 20 reference conversions
 (`tests/golden/cases.txt`: PDF and DOCX with every option family, DOCX→Markdown,
 `--concat`, `--fix-links`) through the engine **in the pinned tools image**, and
 compares the results exactly with `tests/golden/expected/`, recorded from this
