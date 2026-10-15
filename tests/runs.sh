@@ -35,6 +35,15 @@ done
 export PATH="$T/bin:$PATH"
 docx_text() { unzip -p "$1" word/document.xml 2>/dev/null; }
 
+# Is there a .holo-run-* working folder under $1? A glob rather than
+# `ls -a | grep` (SC2010, which failed CI): the prefix is literal, it needs no
+# subprocess, and it is right whether or not nullglob is set — unmatched, the
+# pattern itself is the single iteration and fails the -e test.
+# Negation gets its own helper because `check "desc" ! fn ...` would try to run
+# `!` as a command.
+has_run_dir() { local d; for d in "$1"/.holo-run-*; do [[ -e "$d" ]] && return 0; done; return 1; }
+no_run_dir()  { ! has_run_dir "$1"; }
+
 # --- side by side ------------------------------------------------------------------
 # Six --concat runs at once into one output folder, each with its own two
 # inputs. They used to share output/_concat.tmp.md.
@@ -62,7 +71,7 @@ for i in 1 2 3 4 5 6; do
     done
 done
 check "  each document holds its own two inputs and nothing of the others'" [ "$mixed" -eq 0 ]
-check "  no working folder is left behind" bash -c '! ls -a "$1" | grep -q "^\.holo-run-"' _ "$W/output"
+check "  no working folder is left behind" no_run_dir "$W/output"
 check "  nor any working copy" bash -c '! find "$1" -name "*.tmp.md" | grep -q .' _ "$W/output"
 
 # --- cut short ----------------------------------------------------------------------
@@ -75,14 +84,14 @@ printf '# Doc\n\ntext\n' > "$W/doc.md"
 (cd "$W" && PATH="$W/bin:$PATH" exec "$HC" --from md --to docx --reference none --no-open doc.md > "$T/killed.log" 2>&1) &
 engine=$!
 for _ in $(seq 1 100); do
-    ls -a "$W/output" 2>/dev/null | grep -q '^\.holo-run-' && break
+    has_run_dir "$W/output" && break
     sleep 0.1
 done
-check "a running conversion has its working folder" bash -c 'ls -a "$1" | grep -q "^\.holo-run-"' _ "$W/output"
+check "a running conversion has its working folder" has_run_dir "$W/output"
 kill -TERM "$engine" 2>/dev/null
 wait "$engine" 2>/dev/null
 pkill -f "sleep 60" 2>/dev/null
-check "  SIGTERM removes it" bash -c '! ls -a "$1" | grep -q "^\.holo-run-"' _ "$W/output"
+check "  SIGTERM removes it" no_run_dir "$W/output"
 
 # --- --no-open ------------------------------------------------------------------------
 W="$T/open"; mkdir -p "$W"
