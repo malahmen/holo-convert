@@ -17,3 +17,6 @@ __pycache__/
 # working copies and output folders on purpose (tests/golden.sh).
 !tests/golden/expected/**/output/
 !tests/golden/expected/**/*.tmp.md
+
+# A worktree of an older release, for tests/golden.sh ab --engine-b.
+.golden-v1/

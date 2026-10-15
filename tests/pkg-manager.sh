@@ -9,22 +9,27 @@
 # wrong. Homebrew in a writable prefix was right there and never considered,
 # because brew was Darwin-only.
 #
-# Nothing here installs anything: the engine's two selection functions are
-# eval'd out and driven against a fabricated PATH and a fake ostree marker.
+# Nothing here installs anything: the engine's selection (holo/setup.py
+# pkg_manager) is driven against a fabricated PATH, a stubbed `uname` and a
+# fake ostree marker.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENG="${HOLO_CONVERT:-${HERE}/holo-convert.sh}"
-[[ -f "$ENG" ]] || { echo "holo-convert.sh not found at $ENG" >&2; exit 1; }
+[[ -f "$HERE/holo/setup.py" ]] || { echo "holo/setup.py not found under $HERE" >&2; exit 1; }
 
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 
-# Pulled out ONCE, here, where the real PATH still exists. Each case below
-# replaces PATH wholesale so the selection cannot see this machine's own
-# package managers — which also means no sed, no findmnt, nothing external
-# that is not deliberately stubbed.
-FUNCS="$(sed -n '/^_engine_host_immutable() {/,/^}/p;/^_engine_pkg_manager() {/,/^}/p' "$ENG")"
-[[ -n "$FUNCS" ]] || { echo "could not extract the selection functions from $ENG" >&2; exit 1; }
+# The interpreter is resolved ONCE, here, where the real PATH still exists.
+# Each case below replaces PATH wholesale so the selection cannot see this
+# machine's own package managers - no findmnt, nothing external that is not
+# deliberately stubbed. The OS is whatever the stubbed `uname` says.
+PY="$(command -v python3)"
+SELECT='import subprocess, sys
+sys.path.insert(0, sys.argv[1])
+import platform
+platform.system = lambda: subprocess.run(["uname"], capture_output=True, text=True).stdout.strip()
+from holo import setup
+print(setup.pkg_manager()[0], end="")'
 FAILS=0
 check() { local d="$1" want="$2" got="$3"
     if [[ "$got" == "$want" ]]; then echo "ok   - ${d}: ${got}"
@@ -45,8 +50,7 @@ pick() {
     (
         PATH="$d"; export PATH
         HC_OSTREE_MARKER="$marker"; export HC_OSTREE_MARKER
-        eval "$FUNCS"
-        _engine_pkg_manager || true
+        "$PY" -c "$SELECT" "$HERE"
     )
 }
 
@@ -79,8 +83,7 @@ ro_via_findmnt() {
     printf '#!/bin/sh\nexit 0\n' > "$d/dnf"; chmod +x "$d/dnf"
     ( PATH="$d"; export PATH
       HC_OSTREE_MARKER="$T/absent"; export HC_OSTREE_MARKER
-      eval "$FUNCS"
-      _engine_pkg_manager || true )
+      "$PY" -c "$SELECT" "$HERE" )
 }
 check "a read-only /usr without the marker" none-immutable "$(ro_via_findmnt)"
 # And the inverse: rw must not be read as ro, or every apt box breaks.
@@ -91,8 +94,7 @@ rw_via_findmnt() {
     printf '#!/bin/sh\nexit 0\n' > "$d/apt-get"; chmod +x "$d/apt-get"
     ( PATH="$d"; export PATH
       HC_OSTREE_MARKER="$T/absent"; export HC_OSTREE_MARKER
-      eval "$FUNCS"
-      _engine_pkg_manager || true )
+      "$PY" -c "$SELECT" "$HERE" )
 }
 check "a writable /usr is not immutable" apt "$(rw_via_findmnt)"
 

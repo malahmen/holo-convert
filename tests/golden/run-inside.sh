@@ -8,8 +8,8 @@ set -uo pipefail
 
 ENGINE="$1" RESULT="$2" FILTER="${3:-}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-# The repository root, whichever engine runs (the bash one, or a port under
-# wip/): the canonical .fcc/ lives there, and its path is normalised away.
+# The repository root, whichever engine runs (this one, or another named with
+# --engine): the canonical .fcc/ lives there, and its path is normalised away.
 REPO_ROOT="$(cd "$HERE/../.." && pwd -P)"
 CASES="$HERE/cases"
 

@@ -38,7 +38,7 @@ jobs:
         # The .fcc/ scripts do the DOCX work and are invoked by the engine, so
         # a syntax error in one surfaces as a warned-about post-step rather
         # than a failure. Catch it here instead.
-        run: python3 -m compileall -q .fcc
+        run: python3 -m compileall -q holo holo_convert.py .fcc
 
       - name: tests
         run: tests/run-all.sh
@@ -58,6 +58,4 @@ jobs:
       - name: golden
         run: tests/golden.sh check --runtime docker
 
-      - name: golden, against the Python engine (wip/)
-        run: tests/golden.sh check --runtime docker --engine wip/holo-convert.sh
 

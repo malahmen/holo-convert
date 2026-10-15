@@ -1,9 +1,9 @@
 """The shell semantics the bash engine relies on, made explicit.
 
-Each function here reproduces one construct exactly - `cd dir && pwd`,
-`basename x .md`, `$(...)` stripping trailing newlines, a sed address range,
-awk's record handling - because the golden harness compares the engine's
-output byte for byte, and these are where a port quietly drifts.
+Each function here reproduces one construct of the bash engine this replaced
+(v1.0.0) exactly - `cd dir && pwd`, `basename x .md`, `$(...)` stripping
+trailing newlines, a sed address range, awk's record handling - because the
+golden harness holds the output to that engine's, byte for byte.
 """
 import os
 import shutil
