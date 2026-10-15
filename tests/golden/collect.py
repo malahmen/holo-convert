@@ -101,11 +101,21 @@ def normalise(result: str, work: str, engine_dir: str):
                     fh.write(new)
 
 
+def prune_empty_dirs(result: str):
+    """Git does not keep empty folders, so a recorded result checked out fresh
+    (CI, another machine) never has them. Removing them here makes a run and a
+    checkout agree - an empty sources-after/ once failed every fresh clone."""
+    for root, dirs, files in os.walk(result, topdown=False):
+        if root != result and not os.listdir(root):
+            os.rmdir(root)
+
+
 def main(argv):
     work, result, engine_dir, inputs = argv[1], argv[2], argv[3], argv[4:]
     collect_outputs(work, result)
     collect_sources(work, result, inputs)
     normalise(result, work, engine_dir)
+    prune_empty_dirs(result)
     return 0
 
 
