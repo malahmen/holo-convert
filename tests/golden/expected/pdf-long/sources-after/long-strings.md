@@ -14,6 +14,8 @@ In prose, a path such as /var/lib/holo-convert/cache/rendered/diagrams/2026/octo
 and a command such as `holo-convert.sh --engine container --from md --to pdf --title-page --toc docs/report.md`
 must wrap at the margin too, while short `code` and ordinary words wrap as before.
 
+LaTeX's special characters survive the split: `a_b{c}%d#e&f$g~h^i\j_and_more_text`.
+
 ## A heading with averyveryverylongwordthatstaysuntouched
 
 Headings are left alone: their text is also the bookmark and the TOC entry.

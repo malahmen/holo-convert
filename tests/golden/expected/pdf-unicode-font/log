@@ -5,22 +5,15 @@
 [info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
 [info]  Synced .fcc/pdf/pagebreak.lua (bundled).
 [info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Synced .fcc/pdf/breakable.lua (bundled).
 [info]  Using .fcc/pdf/header.tex.
 [ok]    Monospace font: DejaVu Sans Mono → monofont.tex
 
 == Converting Files ==
 [info]  Output directory: ./output
 [info]  Converting unicode.tmp.md → unicode.pdf …
-[WARNING] Missing character: There is no 你 (U+4F60) (U+4F60) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no 好 (U+597D) (U+597D) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no こ (U+3053) (U+3053) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no ん (U+3093) (U+3093) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no に (U+306B) (U+306B) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no ち (U+3061) (U+3061) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no は (U+306F) (U+306F) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no 안 (U+C548) (U+C548) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no 녕 (U+B155) (U+B155) in font DejaVu Sans/OT:script=latn;la
-[WARNING] Missing character: There is no 🚀 (U+1F680) (U+1F680) in font DejaVu Sans/OT:script=latn;l
+[warn]  unicode.pdf: 10 character(s) missing from the PDF in at least one place - 'DejaVu Sans' there have no glyph for them: 你 (U+4F60) 好 (U+597D) こ (U+3053) ん (U+3093) に (U+306B) ち (U+3061) は (U+306F) 안 (U+C548) 녕 (U+B155) 🚀 (U+1F680)
+[warn]    CJK, emoji and right-to-left scripts (Hebrew, Arabic) are not supported in PDF output (DOCX keeps them); for other characters, --font with a font that has them.
 [ok]    unicode.pdf ✓
 
 [info]  Conversion complete — 1 succeeded, 0 failed.

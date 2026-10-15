@@ -5,59 +5,16 @@
 [info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
 [info]  Synced .fcc/pdf/pagebreak.lua (bundled).
 [info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Synced .fcc/pdf/breakable.lua (bundled).
 [info]  Using .fcc/pdf/header.tex.
 [ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+[info]  Characters Latin Modern lacks (Greek, Cyrillic, arrows, ✓, box drawing) fall back to DejaVu.
 
 == Converting Files ==
 [info]  Output directory: ./output
 [info]  Converting unicode.tmp.md → unicode.pdf …
-[WARNING] Missing character: There is no ⇒ (U+21D2) (U+21D2) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ✗ (U+2717) (U+2717) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ≤ (U+2264) (U+2264) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ★ (U+2605) (U+2605) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no α (U+03B1) (U+03B1) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no β (U+03B2) (U+03B2) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no γ (U+03B3) (U+03B3) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no δ (U+03B4) (U+03B4) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no П (U+041F) (U+041F) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no р (U+0440) (U+0440) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no и (U+0438) (U+0438) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no в (U+0432) (U+0432) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no е (U+0435) (U+0435) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no т (U+0442) (U+0442) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no м (U+043C) (U+043C) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no и (U+0438) (U+0438) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no р (U+0440) (U+0440) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ┌ (U+250C) (U+250C) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ─ (U+2500) (U+2500) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ─ (U+2500) (U+2500) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ┐ (U+2510) (U+2510) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no │ (U+2502) (U+2502) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no │ (U+2502) (U+2502) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no └ (U+2514) (U+2514) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ─ (U+2500) (U+2500) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ─ (U+2500) (U+2500) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ┘ (U+2518) (U+2518) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no 你 (U+4F60) (U+4F60) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no 好 (U+597D) (U+597D) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no こ (U+3053) (U+3053) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ん (U+3093) (U+3093) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no に (U+306B) (U+306B) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ち (U+3061) (U+3061) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no は (U+306F) (U+306F) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no 안 (U+C548) (U+C548) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no 녕 (U+B155) (U+B155) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no 🚀 (U+1F680) (U+1F680) in font [lmroman10-regular]:mapping=
-[WARNING] Missing character: There is no ש (U+05E9) (U+05E9) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ל (U+05DC) (U+05DC) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ו (U+05D5) (U+05D5) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ם (U+05DD) (U+05DD) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no م (U+0645) (U+0645) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ر (U+0631) (U+0631) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ح (U+062D) (U+062D) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ب (U+0628) (U+0628) in font [lmroman10-regular]:mapping=t
-[WARNING] Missing character: There is no ا (U+0627) (U+0627) in font [lmroman10-regular]:mapping=t
+[warn]  unicode.pdf: 19 character(s) missing from the PDF in at least one place - the PDF fonts there have no glyph for them: 你 (U+4F60) 好 (U+597D) こ (U+3053) ん (U+3093) に (U+306B) ち (U+3061) は (U+306F) 안 (U+C548) 녕 (U+B155) 🚀 (U+1F680) ש (U+05E9) ל (U+05DC) ו (U+05D5) ם (U+05DD) م (U+0645) ر (U+0631) ح (U+062D) ب (U+0628) ا (U+0627)
+[warn]    CJK, emoji and right-to-left scripts (Hebrew, Arabic) are not supported in PDF output (DOCX keeps them); for other characters, --font with a font that has them.
 [ok]    unicode.pdf ✓
 
 [info]  Conversion complete — 1 succeeded, 0 failed.

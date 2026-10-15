@@ -1,7 +1,9 @@
 """The conversions themselves: md->pdf, md->docx, docx->md, --concat, the batch."""
 import os
+import re
 import shutil
 import subprocess
+import sys
 
 from . import assets, sh
 from .deps import highlight_theme_arg
@@ -50,6 +52,44 @@ def resolve_resource_path(src: str) -> str:
     return f"{src_dir}:{S.output_dir}:." if src_dir else ""
 
 
+# pandoc's warning for a character no font in use has: one line per occurrence.
+_MISSING_CHAR = re.compile(r"Missing character: There is no (.+?) \(U\+([0-9A-Fa-f]+)\)")
+_MISSING_SHOWN = 30
+
+
+def run_pandoc_pdf(args) -> tuple:
+    """pandoc, its output passed through as it comes, except the "Missing
+    character" warnings: those are collected (one per distinct character) for
+    a single summary. Returns (exit status, missing characters in order)."""
+    missing = {}
+    try:
+        proc = subprocess.Popen(["pandoc", *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, errors="replace")
+    except FileNotFoundError:
+        return 127, []
+    for line in proc.stdout:
+        m = _MISSING_CHAR.search(line)
+        if m:
+            missing.setdefault(m.group(2).upper(), m.group(1))
+        else:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+    return proc.wait(), list(missing.items())
+
+
+def report_missing_chars(output_file: str, missing):
+    """The PDF is written, but without these characters: say so once, plainly."""
+    if not missing:
+        return
+    shown = " ".join(f"{ch} (U+{cp})" for cp, ch in missing[:_MISSING_SHOWN])
+    more = f" … and {len(missing) - _MISSING_SHOWN} more" if len(missing) > _MISSING_SHOWN else ""
+    font = f"'{S.pdf_font}'" if S.pdf_font else "the PDF fonts"
+    warn(f"{sh.basename(output_file)}: {len(missing)} character(s) missing from the PDF in at least "
+         f"one place - {font} there have no glyph for them: {shown}{more}")
+    warn("  CJK, emoji and right-to-left scripts (Hebrew, Arabic) are not supported in PDF output "
+         "(DOCX keeps them); for other characters, --font with a font that has them.")
+
+
 def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
     name_source = name_source or input_file
     if not S.pdf_engine:
@@ -62,11 +102,14 @@ def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
     if S.is_latex_engine():
         args += ["-H", S.header_tex, "-H", S.monofont_tex, "-V", "colorlinks=true", "-V", "linkcolor=blue",
                  "-V", "urlcolor=blue", "-V", "citecolor=blue"]
+        if S.fallback_tex:
+            args += ["-H", S.fallback_tex]
     if res_path:
         args.append(f"--resource-path={res_path}")
     if os.path.isfile(f"{FCC_DIR}/pdf/p10k.theme"):
         args.append(highlight_theme_arg(f"{FCC_DIR}/pdf/p10k.theme"))
-    for lf in ("br.lua", "widen-tables.lua", "render-mermaid.lua", "pagebreak.lua"):
+    # breakable.lua last: widen-tables.lua measures inline code it would split.
+    for lf in ("br.lua", "widen-tables.lua", "render-mermaid.lua", "pagebreak.lua", "breakable.lua"):
         path = assets.resolve_lua_filter(lf)
         if path:
             args.append(f"--lua-filter={path}")
@@ -75,7 +118,9 @@ def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
     if S.use_toc and not S.toc_placed_in_title:
         args += ["--toc", f"--toc-depth={S.toc_depth}", "-V", f"toc-title={TOC_TITLE}"]
     enote(f"Converting {sh.basename(input_file)} → {sh.basename(output_file)} …")
-    if sh.run(["pandoc", *args], stderr=subprocess.STDOUT) == 0:
+    status, missing = run_pandoc_pdf(args)
+    if status == 0:
+        report_missing_chars(output_file, missing)
         success(f"{sh.basename(output_file)} ✓")
         open_file(output_file)
         return True

@@ -5,8 +5,10 @@
 [info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
 [info]  Synced .fcc/pdf/pagebreak.lua (bundled).
 [info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Synced .fcc/pdf/breakable.lua (bundled).
 [info]  Using .fcc/pdf/header.tex.
 [ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+[info]  Characters Latin Modern lacks (Greek, Cyrillic, arrows, ✓, box drawing) fall back to DejaVu.
 
 == Converting Files ==
 [info]  Output directory: ./output
@@ -17,12 +19,12 @@
 [info]  Converting features.tmp.md → features.pdf …
 [render-mermaid] WARNING: mmdc not found — run 'holo-convert.sh --with-optional' (installs mermaid-cli via npm), or: npm install -g @mermaid-js/mermaid-cli
 [WARNING] [makePDF] LaTeX Warning: Hyper reference `nowhere-at-all' on page 1
-  undefined on input line 278.
+  undefined on input line 347.
 [WARNING] [makePDF] LaTeX Warning: Hyper reference `tabels' on page 1 undefined
-  on input line 278.
+  on input line 347.
 [WARNING] [makePDF] LaTeX Warning: There were undefined references.
-[WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font DejaVu Sans Mono Oblique/OT:s
-[WARNING] Missing character: There is no ✓ (U+2713) (U+2713) in font DejaVu Sans Mono Oblique/OT:s
+[warn]  features.pdf: 1 character(s) missing from the PDF in at least one place - the PDF fonts there have no glyph for them: ✓ (U+2713)
+[warn]    CJK, emoji and right-to-left scripts (Hebrew, Arabic) are not supported in PDF output (DOCX keeps them); for other characters, --font with a font that has them.
 [ok]    features.pdf ✓
 
 [info]  Conversion complete — 1 succeeded, 0 failed.

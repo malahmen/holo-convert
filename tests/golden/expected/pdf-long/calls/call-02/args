@@ -15,9 +15,12 @@ linkcolor=blue
 urlcolor=blue
 -V
 citecolor=blue
+-H
+.fcc/pdf/fallback.tex
 --resource-path=<WORK>:./output:.
 --highlight-style=.fcc/pdf/p10k.theme
 --lua-filter=.fcc/pdf/br.lua
 --lua-filter=.fcc/pdf/widen-tables.lua
 --lua-filter=.fcc/pdf/render-mermaid.lua
 --lua-filter=.fcc/pdf/pagebreak.lua
+--lua-filter=.fcc/pdf/breakable.lua

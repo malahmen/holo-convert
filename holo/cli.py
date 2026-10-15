@@ -187,6 +187,8 @@ def main_engine(args) -> int:
         if S.pdf_font and not fonts.font_installed(S.pdf_font):
             enote(f"font '{S.pdf_font}' not installed — using pandoc default.")
             S.pdf_font = ""
+        if S.is_latex_engine():
+            fonts.detect_fallback_fonts()
     elif pair == "md->docx":
         if not assets.ensure_fcc_docx_assets():
             return 1          # set -e in the bash engine: no reference doc, no run

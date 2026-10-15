@@ -202,6 +202,25 @@
 }
 
 % ---------------------------------------------------------------------------
+% Long strings - see breakable.lua, which emits these two.
+% \hcbreak: a break opportunity after a separator (/ . - _ ...) in a long
+% word, URL or identifier. \hcsplit: one inside a run with no separator - a
+% higher penalty, so TeX takes it only when nothing better fits. Both cost
+% more than a space, so TeX still prefers to break between words.
+% \hccodepart{left}{right}{text}: one piece of a long inline code span, styled
+% as \texttt above. A piece that continues on a side gets \kern-\fboxsep there,
+% so its box has no padding on that side; the \vphantom gives every piece the
+% same height and depth, so the pieces join without a step.
+% xurl: \url may break at any character.
+% ---------------------------------------------------------------------------
+\newcommand{\hcbreak}{\penalty50\relax}
+\newcommand{\hcsplit}{\penalty300\relax}
+\newcommand{\hccodepart}[3]{%
+  \colorbox{termbg}{#1{\ttfamily\relsize{-1}\color{termfg}\vphantom{Xgjpqy\textunderscore}#3}#2}%
+}
+\usepackage{xurl}
+
+% ---------------------------------------------------------------------------
 % Suppress all hyphenation in prose.
 % \pretolerance=10000 makes TeX accept slightly loose lines before trying
 % hyphenation. Combined with \hyphenpenalty=10000 it effectively disables
@@ -242,6 +261,56 @@
 }
 \ifdefined\setmonofont
   \setmonofont{DejaVu Sans Mono}
+\fi
+% fallback.tex - written by holo-convert for each run (fonts.py).
+% Characters Latin Modern has no glyph for used to vanish from the PDF, with
+% only a warning per character from pandoc. XeTeX's character classes switch
+% to DejaVu for exactly those Unicode blocks and back after them. Code (the
+% monospace family) is left alone: its font has these, and ASCII art there
+% must keep its fixed width. No groups, so a brace between the two ends of a
+% run cannot unbalance anything.
+\ifdefined\XeTeXinterchartoks
+\newfontfamily\hcfallbackletters{DejaVu Serif}
+\newfontfamily\hcfallbacksymbols{DejaVu Sans}
+\newXeTeXintercharclass\hcclassletters
+\newXeTeXintercharclass\hcclasssymbols
+\makeatletter
+\def\hc@range#1#2#3{\count@=#1\relax
+  \loop\XeTeXcharclass\count@=#3\relax\ifnum\count@<#2\advance\count@\@ne\repeat}
+\hc@range{"0370}{"03FF}{\hcclassletters}
+\hc@range{"1F00}{"1FFF}{\hcclassletters}
+\hc@range{"0400}{"052F}{\hcclassletters}
+\hc@range{"2196}{"21FF}{\hcclasssymbols}
+\hc@range{"2200}{"22FF}{\hcclasssymbols}
+\hc@range{"2300}{"23FF}{\hcclasssymbols}
+\hc@range{"2460}{"24FF}{\hcclasssymbols}
+\hc@range{"2500}{"257F}{\hcclasssymbols}
+\hc@range{"2580}{"259F}{\hcclasssymbols}
+\hc@range{"25A0}{"25FF}{\hcclasssymbols}
+\hc@range{"2600}{"26FF}{\hcclasssymbols}
+\hc@range{"2700}{"27BF}{\hcclasssymbols}
+\hc@range{"27F0}{"27FF}{\hcclasssymbols}
+\hc@range{"2900}{"297F}{\hcclasssymbols}
+\hc@range{"2980}{"29FF}{\hcclasssymbols}
+\hc@range{"2A00}{"2AFF}{\hcclasssymbols}
+\hc@range{"2B00}{"2BFF}{\hcclasssymbols}
+\let\hc@close\relax
+\def\hc@restore{\fontfamily{\hc@saved}\selectfont\let\hc@close\relax}
+\def\hc@open#1{\hc@close
+  \edef\hc@a{\f@family}\edef\hc@b{\ttdefault}%
+  \ifx\hc@a\hc@b\else\let\hc@saved\hc@a\let\hc@close\hc@restore#1\fi}
+\XeTeXinterchartoks 0 \hcclassletters = {\hc@open\hcfallbackletters}
+\XeTeXinterchartoks 4095 \hcclassletters = {\hc@open\hcfallbackletters}
+\XeTeXinterchartoks \hcclasssymbols \hcclassletters = {\hc@open\hcfallbackletters}
+\XeTeXinterchartoks 0 \hcclasssymbols = {\hc@open\hcfallbacksymbols}
+\XeTeXinterchartoks 4095 \hcclasssymbols = {\hc@open\hcfallbacksymbols}
+\XeTeXinterchartoks \hcclassletters \hcclasssymbols = {\hc@open\hcfallbacksymbols}
+\XeTeXinterchartoks \hcclassletters 0 = {\hc@close}
+\XeTeXinterchartoks \hcclassletters 4095 = {\hc@close}
+\XeTeXinterchartoks \hcclasssymbols 0 = {\hc@close}
+\XeTeXinterchartoks \hcclasssymbols 4095 = {\hc@close}
+\makeatother
+\XeTeXinterchartokenstate=1
 \fi
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
@@ -371,8 +440,8 @@ Meaning
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\texttt{converter-services-2026-10-10} & a long identifier in the first
-column \\
+\hccodepart{}{\kern-\fboxsep{}}{converter-}\hcbreak{}\kern-.25pt{}\hccodepart{\kern-\fboxsep{}}{\kern-\fboxsep{}}{services-}\hcbreak{}\kern-.25pt{}\hccodepart{\kern-\fboxsep{}}{\kern-\fboxsep{}}{2026-}\hcbreak{}\kern-.25pt{}\hccodepart{\kern-\fboxsep{}}{\kern-\fboxsep{}}{10-}\hcbreak{}\kern-.25pt{}\hccodepart{\kern-\fboxsep{}}{}{10}
+& a long identifier in the first column \\
 \texttt{x} & short \\
 \end{longtable}
 

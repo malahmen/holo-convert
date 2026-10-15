@@ -21,3 +21,4 @@ citecolor=blue
 --lua-filter=.fcc/pdf/widen-tables.lua
 --lua-filter=.fcc/pdf/render-mermaid.lua
 --lua-filter=.fcc/pdf/pagebreak.lua
+--lua-filter=.fcc/pdf/breakable.lua

@@ -142,6 +142,25 @@
 }
 
 % ---------------------------------------------------------------------------
+% Long strings - see breakable.lua, which emits these two.
+% \hcbreak: a break opportunity after a separator (/ . - _ ...) in a long
+% word, URL or identifier. \hcsplit: one inside a run with no separator - a
+% higher penalty, so TeX takes it only when nothing better fits. Both cost
+% more than a space, so TeX still prefers to break between words.
+% \hccodepart{left}{right}{text}: one piece of a long inline code span, styled
+% as \texttt above. A piece that continues on a side gets \kern-\fboxsep there,
+% so its box has no padding on that side; the \vphantom gives every piece the
+% same height and depth, so the pieces join without a step.
+% xurl: \url may break at any character.
+% ---------------------------------------------------------------------------
+\newcommand{\hcbreak}{\penalty50\relax}
+\newcommand{\hcsplit}{\penalty300\relax}
+\newcommand{\hccodepart}[3]{%
+  \colorbox{termbg}{#1{\ttfamily\relsize{-1}\color{termfg}\vphantom{Xgjpqy\textunderscore}#3}#2}%
+}
+\usepackage{xurl}
+
+% ---------------------------------------------------------------------------
 % Suppress all hyphenation in prose.
 % \pretolerance=10000 makes TeX accept slightly loose lines before trying
 % hyphenation. Combined with \hyphenpenalty=10000 it effectively disables

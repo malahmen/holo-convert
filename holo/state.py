@@ -60,6 +60,7 @@ class State:
         self.pdf_font = ""
         self.available_engines = []
         self.monofont_tex = ""
+        self.fallback_tex = ""
         self.header_tex = ""
         self.docx_font = ""
         self.docx_mono = ""
