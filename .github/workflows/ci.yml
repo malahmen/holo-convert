@@ -58,3 +58,6 @@ jobs:
       - name: golden
         run: tests/golden.sh check --runtime docker
 
+      - name: golden, against the Python engine (wip/)
+        run: tests/golden.sh check --runtime docker --engine wip/holo-convert.sh
+

@@ -16,7 +16,17 @@
 # document.
 set -uo pipefail
 
-REAL="${GOLDEN_REAL_PANDOC:-/usr/bin/pandoc}"
+# The real pandoc: the first one on PATH that is not this wrapper (in the image
+# that is /usr/bin/pandoc; on a Mac, Homebrew's).
+REAL="${GOLDEN_REAL_PANDOC:-}"
+if [[ -z "$REAL" ]]; then
+    self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+    IFS=: read -r -a _dirs <<< "$PATH"
+    for d in "${_dirs[@]}"; do
+        [[ -n "$d" && -x "$d/pandoc" && "$(cd "$d" 2>/dev/null && pwd -P)" != "$self_dir" ]] && { REAL="$d/pandoc"; break; }
+    done
+fi
+[[ -n "$REAL" ]] || { echo "golden pandoc wrapper: no real pandoc on PATH" >&2; exit 127; }
 case "${1:-}" in --version|--list-*|-v) exec "$REAL" "$@" ;; esac
 
 n=$(( $(cat "$GOLDEN_CAPTURE/.count" 2>/dev/null || echo 0) + 1 ))

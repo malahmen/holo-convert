@@ -6,6 +6,9 @@
 #   tests/golden.sh record             re-record expected/ (after a deliberate change)
 #   tests/golden.sh check --engine wip/holo-convert.sh     check another engine (the port)
 #   tests/golden.sh check --case docx  only the cases whose name contains "docx"
+#   tests/golden.sh ab -- <flags> <files>       one real conversion through the
+#                                     bash engine and the Python port, compared
+#   tests/golden.sh ab --local -- ...           the same on this host's own tools
 #
 # What is compared, per case (tests/golden/cases.txt):
 #   - the exit code and the engine's messages;
@@ -25,10 +28,14 @@ set -uo pipefail
 
 TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO="$(cd "$TEST_DIR/.." && pwd -P)"
-MODE="check" ENGINE="$REPO/holo-convert.sh" FILTER="" RT="${HOLO_CONVERT_RUNTIME:-}"
+MODE="check" ENGINE="$REPO/holo-convert.sh" FILTER="" RT="${HOLO_CONVERT_RUNTIME:-}" LOCAL=false
+AB_ARGS=() B_ENGINE="$REPO/wip/holo-convert.sh"
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        check|record) MODE="$1"; shift ;;
+        check|record|ab) MODE="$1"; shift ;;
+        --local)   LOCAL=true; shift ;;
+        --engine-b) B_ENGINE="$(cd "$(dirname "$2")" && pwd -P)/$(basename "$2")"; shift 2 ;;
+        --)        shift; AB_ARGS=("$@"); break ;;
         --engine)  ENGINE="$(cd "$(dirname "$2")" && pwd -P)/$(basename "$2")"; shift 2 ;;
         --case)    FILTER="$2"; shift 2 ;;
         --runtime) RT="$2"; shift 2 ;;
@@ -37,6 +44,45 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 [[ -f "$ENGINE" ]] || { echo "golden: no engine at $ENGINE" >&2; exit 2; }
+
+# --- ab: one real conversion, two engines --------------------------------------
+if [[ "$MODE" == ab ]]; then
+    (( ${#AB_ARGS[@]} )) || { echo "golden ab: give the conversion after --  (e.g. ab -- --from md --to docx doc.md)" >&2; exit 2; }
+    [[ -f "$B_ENGINE" ]] || { echo "golden ab: no engine at $B_ENGINE" >&2; exit 2; }
+    for a in "${AB_ARGS[@]}"; do
+        [[ "$a" == -o || "$a" == --output ]] && { echo "golden ab: leave out -o - each engine writes into its own working folder" >&2; exit 2; }
+    done
+    # Paths become absolute, so the same arguments work from the working folders.
+    args=() mounts=()
+    for a in "${AB_ARGS[@]}"; do
+        if [[ -e "$a" ]]; then
+            abs="$(cd "$(dirname "$a")" && pwd -P)/$(basename "$a")"; args+=("$abs")
+            mounts+=(-v "$(dirname "$abs"):$(dirname "$abs"):ro")
+        else args+=("$a"); fi
+    done
+    ACTUAL="$(mktemp -d)"; ACTUAL="$(cd "$ACTUAL" && pwd -P)"
+    trap 'rm -rf "$ACTUAL"' EXIT
+    if [[ "$LOCAL" == true ]]; then
+        bash "$TEST_DIR/golden/ab-inside.sh" "$ENGINE" "$B_ENGINE" "$ACTUAL" -- "${args[@]}"
+    else
+        if [[ -z "$RT" ]]; then
+            if command -v podman &>/dev/null; then RT=podman; elif command -v docker &>/dev/null; then RT=docker
+            else echo "golden ab: no podman or docker (or use --local)" >&2; exit 2; fi
+        fi
+        IMAGE="$(bash -c 'source "$1" && container_image' _ "$REPO/holo-convert.sh")"
+        "$RT" image inspect "$IMAGE" &>/dev/null || { echo "golden ab: image $IMAGE not built (holo-convert.sh --setup --engine container)" >&2; exit 2; }
+        user=(--user "$(id -u):$(id -g)"); [[ "$RT" == podman ]] && user=(--userns=keep-id)
+        "$RT" run --rm --network none "${user[@]}" --security-opt label=disable -e HOME=/tmp \
+            -v "$REPO:$REPO:ro" -v "$ACTUAL:$ACTUAL" "${mounts[@]}" -w "$REPO" "$IMAGE" \
+            bash "$TEST_DIR/golden/ab-inside.sh" "$ENGINE" "$B_ENGINE" "$ACTUAL" -- "${args[@]}"
+    fi
+    echo
+    if diff -r -q "$ACTUAL/a" "$ACTUAL/b" >/dev/null; then
+        echo "golden ab: identical - $(basename "$ENGINE") and ${B_ENGINE#"$REPO"/} produced the same result"; exit 0
+    fi
+    diff -r -u "$ACTUAL/a" "$ACTUAL/b" | head -80
+    echo; echo "golden ab: the two engines differ (above: a = $(basename "$ENGINE"), b = ${B_ENGINE#"$REPO"/})"; exit 1
+fi
 case "$ENGINE" in "$REPO"/*) ;; *) echo "golden: the engine must live in this repository ($REPO)" >&2; exit 2 ;; esac
 
 if [[ -z "$RT" ]]; then

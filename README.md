@@ -358,6 +358,10 @@ tests/golden.sh record             # re-record after a deliberate change
 tests/golden.sh check --case docx  # only some cases
 ```
 
+`tests/golden.sh ab -- <flags> <files>` puts one real conversion through both the
+bash engine and the Python port (`wip/`), and compares them the same way;
+`--local` runs it on this host's tools instead of the image.
+
 It needs podman or docker and the image (`--setup --engine container`); without
 them it prints SKIP, so `tests/run-all.sh` still works anywhere. CI builds the
 image and runs it as its own job.
