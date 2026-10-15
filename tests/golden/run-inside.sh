@@ -53,7 +53,7 @@ while IFS='|' read -r name inputs flags; do
         > "$res/log" 2>&1
     echo "$?" > "$res/exit-code"
     rm -f "$res/calls/.count"
-    python3 "$HERE/collect.py" "$work" "$res" "$REPO_ROOT"
+    python3 "$HERE/collect.py" "$work" "$res" "$REPO_ROOT" "${input_list[@]}"
     printf '%-18s exit %s\n' "$name" "$(cat "$res/exit-code")"
     rm -rf "$work"
 done < "$HERE/cases.txt"
