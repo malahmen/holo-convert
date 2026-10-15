@@ -12,3 +12,8 @@ __pycache__/
 
 # Regenerated on every md->pdf run by detect_mono_font (holds a machine-local font path)
 .fcc/pdf/monofont.tex
+
+# ...except in the golden harness's recorded results, which hold the engine's
+# working copies and output folders on purpose (tests/golden.sh).
+!tests/golden/expected/**/output/
+!tests/golden/expected/**/*.tmp.md

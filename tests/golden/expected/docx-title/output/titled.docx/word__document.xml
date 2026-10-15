@@ -1,0 +1,268 @@
+<?xml version="1.0" ?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Subtitle"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">For</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">the</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">title</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">page</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Author"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Report</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">Author</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Date"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">1</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">January</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve"> </w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">2026</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Title"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">A titled report</w:t>
+      </w:r>
+    </w:p>
+    <w:bookmarkStart w:id="21" w:name="introduction"/>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:pageBreakBefore/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Introduction</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="FirstParagraph"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">A document with front matter, for the title page and the letterhead.</w:t>
+      </w:r>
+    </w:p>
+    <w:bookmarkStart w:id="20" w:name="background"/>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading2"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Background</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="FirstParagraph"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Some background, with a table:</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblStyle w:val="Table"/>
+        <w:tblW w:type="pct" w:w="5000"/>
+        <w:jc w:val="left"/>
+        <w:tblLayout w:type="fixed"/>
+        <w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0" w:val="0020"/>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="4873"/>
+        <w:gridCol w:w="4873"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:trPr>
+          <w:tblHeader w:val="on"/>
+        </w:trPr>
+        <w:tc>
+          <w:tcPr>
+            <w:shd w:val="clear" w:color="auto" w:fill="CCCCCC"/>
+          </w:tcPr>
+          <w:tcPr/>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="Compact"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:t xml:space="preserve">Key</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:shd w:val="clear" w:color="auto" w:fill="CCCCCC"/>
+          </w:tcPr>
+          <w:tcPr/>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="Compact"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:t xml:space="preserve">Value</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
+          </w:tcPr>
+          <w:tcPr/>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="Compact"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:t xml:space="preserve">one</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>
+          </w:tcPr>
+          <w:tcPr/>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="Compact"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:t xml:space="preserve">1</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr/>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="Compact"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:t xml:space="preserve">two</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr/>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="Compact"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:t xml:space="preserve">2</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:bookmarkEnd w:id="20"/>
+    <w:bookmarkEnd w:id="21"/>
+    <w:bookmarkStart w:id="22" w:name="findings"/>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Findings</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="FirstParagraph"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">Findings, and a list:</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Compact"/>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1001"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">first finding</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Compact"/>
+        <w:numPr>
+          <w:ilvl w:val="0"/>
+          <w:numId w:val="1001"/>
+        </w:numPr>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">second finding</w:t>
+      </w:r>
+    </w:p>
+    <w:bookmarkEnd w:id="22"/>
+    <w:sectPr>
+      <w:headerReference r:id="rId9" w:type="default"/>
+      <w:footerReference r:id="rId10" w:type="default"/>
+      <w:headerReference w:type="first" r:id="rIdHdrFirst"/>
+      <w:footerReference w:type="first" r:id="rIdFtrFirst"/>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:bottom="1440" w:footer="600" w:gutter="0" w:header="720" w:left="1080" w:right="1080" w:top="1440"/>
+      <w:cols w:space="720"/>
+      <w:titlePg/>
+    </w:sectPr>
+  </w:body>
+</w:document>

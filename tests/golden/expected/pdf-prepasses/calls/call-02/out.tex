@@ -1,0 +1,403 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{38,38,38}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.37,0.37}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.35,0.35,0.35}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.00,0.53,0.69}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{1.00,0.69,0.00}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.53,0.69}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.35,0.35,0.35}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.35,0.35,0.35}{\textit{#1}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{1.00,0.69,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.69,0.53,1.00}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.00,0.53,0.69}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{1.00,0.69,0.00}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.35,0.35,0.35}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.37,0.37}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{\textcolor[rgb]{0.00,0.53,0.69}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{1.00,0.69,0.00}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.37,0.69,0.53}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.53,0.69}{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.69,0.53,1.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{\textcolor[rgb]{0.74,0.74,0.74}{#1}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.74,0.74,0.74}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.74,0.74,0.74}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{\textcolor[rgb]{0.74,0.74,0.74}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.53,0.69}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{1.00,0.84,0.00}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{1.00,0.37,0.37}{\textbf{#1}}}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\ifLuaTeX
+  \usepackage{luacolor}
+  \usepackage[soul]{lua-ul}
+\else
+  \usepackage{soul}
+\fi
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+% ---------------------------------------------------------------------------
+% header.tex — pandoc MD→PDF code block styling
+% Pair with: --highlight-style .fcc/pdf/p10k.theme
+%
+% Approach: tcolorbox owns the block background entirely.
+% fvextra patches Highlighting directly to fix the ␣ bug.
+% ---------------------------------------------------------------------------
+
+% ---------------------------------------------------------------------------
+% Page margins
+% ---------------------------------------------------------------------------
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+
+% ---------------------------------------------------------------------------
+% Hyperlinks — controlled via -V colorlinks=true passed to pandoc.
+% pandoc's template conditionally sets colorlinks/hidelinks based on that
+% variable — no hyperref config needed here.
+% ---------------------------------------------------------------------------
+
+% ---------------------------------------------------------------------------
+% Images — required for \includegraphics in title page template
+% ---------------------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{fvextra}
+\usepackage{etoolbox}
+\usepackage[most]{tcolorbox}
+
+% ---------------------------------------------------------------------------
+% p10k colours (xterm-256 exact hex)
+% ---------------------------------------------------------------------------
+\definecolor{termbg} {HTML}{262626}
+\definecolor{termfg} {HTML}{bcbcbc}
+
+% ---------------------------------------------------------------------------
+% Fix ␣ bug: patch the Highlighting environment that pandoc defines via
+% \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=...}
+% fvextra's \fvset doesn't reach it because the options on DefineVerbatimEnvironment
+% take precedence. We redefine it after \begin{document} to inject breaklines.
+% ---------------------------------------------------------------------------
+\AtBeginDocument{%
+  % Redefine Highlighting to add fvextra breaklines + correct foreground colour.
+  % Preserve the commandchars option pandoc requires for token coloring.
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
+    commandchars=\\\{\},%
+    breaklines=true,%
+    breakanywhere=false,%
+    breaksymbolleft={},%
+    fontsize=\small,%
+  }%
+  % Suppress hyphenation at font level — prevents TeX inserting hyphens on line breaks.
+  \BeforeBeginEnvironment{Verbatim}{\hyphenchar\font=-1\relax}%
+  \AfterEndEnvironment{Verbatim}{\hyphenchar\font=`\-\relax}%
+}
+
+% ---------------------------------------------------------------------------
+% Redefine Shaded using tcolorbox — completely independent of framed/snugshade.
+% \AtBeginDocument so it fires after pandoc defines Shaded at line ~47.
+% ---------------------------------------------------------------------------
+\AtBeginDocument{%
+  \ifdef{\Shaded}{}{\newenvironment{Shaded}{}{}}%
+  \renewenvironment{Shaded}{%
+    \begin{tcolorbox}[%
+      enhanced,%
+      arc=3pt,%
+      boxrule=0.5pt,%
+      colback=termbg,%
+      colframe=termbg!60!black,%
+      coltext=termfg,%
+      left=6pt, right=6pt, top=4pt, bottom=4pt,%
+      before skip=8pt, after skip=8pt,%
+      fontupper=\color{termfg}\small,%
+    ]%
+  }{%
+    \end{tcolorbox}%
+  }%
+}
+
+% ---------------------------------------------------------------------------
+% Inline code styling
+% Use \scalerel to allow the text to shrink when inside narrow table columns.
+% \texttt globally uses \footnotesize so long identifiers fit in pandoc's
+% hardcoded longtable column proportions.
+% ---------------------------------------------------------------------------
+\usepackage{relsize}
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{%
+  \colorbox{termbg}{{\ttfamily\relsize{-1}\color{termfg}#1}}%
+}
+
+% ---------------------------------------------------------------------------
+% Suppress all hyphenation in prose.
+% \pretolerance=10000 makes TeX accept slightly loose lines before trying
+% hyphenation. Combined with \hyphenpenalty=10000 it effectively disables
+% hyphenation without breaking the layout engine entirely.
+% ---------------------------------------------------------------------------
+\pretolerance=10000
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% ---------------------------------------------------------------------------
+% Table row colours — alternating light grey / white body rows, medium grey
+% header. Applies to all longtables pandoc generates.
+%
+% \rowcolors{<start row>}{<odd colour>}{<even colour>}
+% Start row 1 so the header row is row 0 (styled separately via \rowcolor).
+% \arrayrulecolor keeps the rule lines visible against the light background.
+% ---------------------------------------------------------------------------
+\usepackage{colortbl}
+\definecolor{tableheader}{HTML}{cccccc}
+\definecolor{tablerowodd}{HTML}{f5f5f5}
+\definecolor{tableroweven}{HTML}{ffffff}
+
+\AtBeginDocument{%
+  \rowcolors{2}{tablerowodd}{tableroweven}%
+}
+
+% Style the header row — pandoc wraps it in \endfirsthead / \endhead blocks.
+% Redefine \toprule and \midrule to inject \rowcolor on the header row.
+% \arrayrulecolor darkens the rule lines so they remain visible on light bg.
+\arrayrulecolor{gray!50}
+
+% Colour the header row by patching longtable's first-head block.
+% \pretocmd injects \rowcolor{tableheader} immediately after \toprule,
+% which is where pandoc places the header row.
+\usepackage{longtable}
+\AtBeginDocument{%
+  \pretocmd{\toprule}{\rowcolor{tableheader}}{}{}%
+}
+\setmonofont{DejaVu Sans Mono}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={blue},
+  urlcolor={blue},
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\section{Feature reference}\label{feature-reference}
+
+Everything holo-convert has to carry through, in one document: inline
+marks, lists, tables, code, maths, images, links, breaks - and the
+characters the pre-passes rewrite: arrows -\textgreater, dashes - and
+ticks , and a wikilink to a label or Plain target.
+
+\subsection{Text}\label{text}
+
+Plain, \emph{emphasis}, \textbf{strong}, \textbf{\emph{both}},
+\st{strike}, \texttt{inline\ code}, \textsuperscript{super},
+\textsubscript{sub}, a footnote\footnote{The footnote, with
+  \texttt{code}.}, an \href{https://example.org}{external link}, and an
+\hyperref[tables]{internal link}. A \hyperref[nowhere-at-all]{broken
+anchor} and a near miss to \hyperref[tabels]{the tables}.
+
+\begin{quote}
+A block quote, with \textbf{strong} text inside.
+\end{quote}
+
+\begin{itemize}
+\tightlist
+\item[$\square$]
+  an open task
+\item[$\boxtimes$]
+  a done task
+\end{itemize}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  first
+\item
+  second
+
+  \begin{itemize}
+  \tightlist
+  \item
+    nested bullet
+  \item
+    another
+  \end{itemize}
+\end{enumerate}
+
+\begin{description}
+\tightlist
+\item[Term]
+Its definition.
+\end{description}
+
+\subsection{Tables}\label{tables}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.2857}}
+  >{\centering\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3810}}
+  >{\raggedleft\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Left
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+Centre
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Right
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\begin{minipage}[t]{\linewidth}\raggedright
+a\\
+b\strut
+\end{minipage} & \texttt{x} & 1.5 \\
+a very long cell that has to wrap across the column width when rendered
+& mid & 2 \\
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Identifier
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Meaning
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{converter-services-2026-10-10} & a long identifier in the first
+column \\
+\texttt{x} & short \\
+\end{longtable}
+
+\subsection{Code}\label{code}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{def}\NormalTok{ f(x):}
+    \CommentTok{\# arrows → and dashes — and ticks ✓ stay as they are in code}
+    \ControlFlowTok{return}\NormalTok{ x }\OperatorTok{**} \DecValTok{2}  \CommentTok{\# “quotes”, ≈}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{graph LR}
+\NormalTok{  A {-}{-}\textgreater{} B}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{Maths}\label{maths}
+
+Inline \(e^{i\pi} + 1 = 0\) and display:
+
+\[\sum_{k=1}^{n} k = \frac{n(n+1)}{2}\]
+
+\subsection{Images}\label{images}
+
+\begin{figure}
+\centering
+\includegraphics{./output/media/svg_1_diagram.png}
+\caption{A vector diagram}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{pixel.png}
+\caption{A small picture}
+\end{figure}
+
+Line one\\
+line two, after a hard break.
+
+\newpage
+
+\subsection{After a page break}\label{after-a-page-break}
+
+The end.
+
+\end{document}

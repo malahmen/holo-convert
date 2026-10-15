@@ -1,0 +1,27 @@
+# The reference conversions: one per line,  name | inputs | flags
+# Inputs are files in tests/golden/cases/ (generated.docx and pixel.png are
+# made at run time, so no binary lives in the repository). Flags are split on
+# spaces; a value with spaces goes in double quotes.
+#
+# Every option family the engine has is here at least once; the expected
+# results in expected/<name>/ are what the bash engine produced, in the pinned
+# container image.
+
+pdf-default     | features.md            | --from md --to pdf
+pdf-toc         | features.md            | --from md --to pdf --toc --toc-depth 2
+pdf-prepasses   | features.md            | --from md --to pdf --substitutions --strip-rules --unwrap-wikilinks --raster-svg
+pdf-font        | features.md            | --from md --to pdf --font "DejaVu Sans"
+pdf-title       | titled.md              | --from md --to pdf --title-page --toc
+pdf-pdflatex    | titled.md              | --from md --to pdf --pdf-engine pdflatex
+pdf-concat      | part-a.md part-b.md    | --from md --to pdf --concat --toc
+pdf-fixlinks    | features.md            | --from md --to pdf --fix-links
+docx-default    | features.md            | --from md --to docx
+docx-plain-toc  | features.md            | --from md --to docx --reference plain --toc
+docx-noref      | features.md            | --from md --to docx --reference none
+docx-letterhead | titled.md              | --from md --to docx --letterhead --author "A. Author" --classification INTERNAL --version v2 --date "1 January 2026" --page-size letter
+docx-title      | titled.md              | --from md --to docx --title-page --letterhead --date "1 January 2026" --no-tp-footer
+docx-fonts      | features.md            | --from md --to docx --font "DejaVu Sans" --mono "DejaVu Sans Mono"
+docx-prepasses  | features.md            | --from md --to docx --substitutions --strip-rules --unwrap-wikilinks --raster-svg
+docx-concat     | part-a.md part-b.md    | --from md --to docx --concat --concat-pagebreak --letterhead --date "1 January 2026"
+md-gfm          | generated.docx         | --from docx --to md
+md-commonmark   | generated.docx         | --from docx --to md --md-variant commonmark

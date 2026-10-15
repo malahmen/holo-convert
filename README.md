@@ -333,6 +333,35 @@ tests/widen-tables.sh
 tests/run-all.sh          # every file; skips what the host cannot run
 ```
 
+**The golden harness** — `tests/golden.sh` — puts 18 reference conversions
+(`tests/golden/cases.txt`: PDF and DOCX with every option family, DOCX→Markdown,
+`--concat`, `--fix-links`) through the engine **in the pinned tools image**, and
+compares the results exactly with `tests/golden/expected/`, recorded from this
+engine:
+
+- the exit code and the engine's messages;
+- every pandoc call — its arguments, and the files the engine made for it (the
+  Markdown after the pre-passes, generated LaTeX headers);
+- for a PDF, the LaTeX pandoc generates from those arguments (the PDF's own bytes
+  carry a date; the real PDF is still built, so a LaTeX error still fails);
+- every DOCX as its XML parts, pretty-printed, after the Python post-steps;
+- the sources after the run (`--fix-links` rewrites them).
+
+Time is fixed (`SOURCE_DATE_EPOCH`) and paths are normalised, so two runs match
+byte for byte. It exists for the Python port (`--engine` points it at another
+engine), and catches any change in output along the way: a changed substitution,
+a pandoc option, a skipped DOCX step and a changed message each fail it.
+
+```sh
+tests/golden.sh                    # check
+tests/golden.sh record             # re-record after a deliberate change
+tests/golden.sh check --case docx  # only some cases
+```
+
+It needs podman or docker and the image (`--setup --engine container`); without
+them it prints SKIP, so `tests/run-all.sh` still works anywhere. CI builds the
+image and runs it as its own job.
+
 **26 checks** in `tests/container-engine.sh` over `--engine container`, against a
 stub runtime that records what it is asked: which image, which mounts (each at
 its own path, the engine read-only), no network, as the caller rather than

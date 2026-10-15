@@ -1,0 +1,3 @@
+word/media/rId26.svg  7ef9c64be8bc52b3  203 bytes
+word/media/rId29.png  7a30a2f81dfa93b8  1317 bytes
+word/media/rId30.png  75a5a5765f2e9a3b  79 bytes

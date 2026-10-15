@@ -1,0 +1,9 @@
+[info]  dependencies OK for docx->md (pandoc 3.1.11.1).
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Converting generated.docx → generated.md ...
+[ok]    generated.md ✓
+[info]  Extracted 2 media file(s) → ./output/media/generated
+
+[info]  Conversion complete — 1 succeeded, 0 failed.

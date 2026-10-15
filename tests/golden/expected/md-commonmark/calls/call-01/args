@@ -1,0 +1,6 @@
+generated.docx
+-o
+./output/generated.md
+--from=docx
+--to=commonmark
+--extract-media=./output/media/generated
