@@ -6,6 +6,7 @@
 [info]  Synced .fcc/pdf/pagebreak.lua (bundled).
 [info]  Synced .fcc/pdf/br.lua (bundled).
 [info]  Synced .fcc/pdf/breakable.lua (bundled).
+[info]  Synced .fcc/pdf/strikeout-links.lua (bundled).
 [info]  Using .fcc/pdf/header.tex.
 [ok]    Monospace font: DejaVu Sans Mono → monofont.tex
 
