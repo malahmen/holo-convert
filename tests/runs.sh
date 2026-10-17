@@ -33,7 +33,10 @@ for viewer in open xdg-open; do
     chmod +x "$T/bin/$viewer"
 done
 export PATH="$T/bin:$PATH"
-docx_text() { unzip -p "$1" word/document.xml 2>/dev/null; }
+# The document text of a .docx. python3, not unzip: the engine needs python3
+# anyway, and unzip is missing from some hosts and from the tools image, where
+# this check then failed instead of reading the file.
+docx_text() { python3 -c 'import sys, zipfile; sys.stdout.write(zipfile.ZipFile(sys.argv[1]).read("word/document.xml").decode())' "$1" 2>/dev/null; }
 
 # Is there a .holo-run-* working folder under $1? A glob rather than
 # `ls -a | grep` (SC2010, which failed CI): the prefix is literal, it needs no

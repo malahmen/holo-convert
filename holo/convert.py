@@ -130,8 +130,10 @@ def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
         args.append(f"--resource-path={res_path}")
     if os.path.isfile(f"{FCC_DIR}/pdf/p10k.theme"):
         args.append(highlight_theme_arg(f"{FCC_DIR}/pdf/p10k.theme"))
-    # breakable.lua last: widen-tables.lua measures inline code it would split.
-    for lf in ("br.lua", "widen-tables.lua", "render-mermaid.lua", "pagebreak.lua", "breakable.lua"):
+    # breakable.lua after widen-tables.lua, which measures inline code it would
+    # split; strikeout-links.lua last, since it only moves a strike inside links.
+    for lf in ("br.lua", "widen-tables.lua", "render-mermaid.lua", "pagebreak.lua", "breakable.lua",
+               "strikeout-links.lua"):
         path = assets.resolve_lua_filter(lf)
         if path:
             args.append(f"--lua-filter={path}")

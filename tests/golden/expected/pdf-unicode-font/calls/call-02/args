@@ -22,5 +22,6 @@ citecolor=blue
 --lua-filter=.fcc/pdf/render-mermaid.lua
 --lua-filter=.fcc/pdf/pagebreak.lua
 --lua-filter=.fcc/pdf/breakable.lua
+--lua-filter=.fcc/pdf/strikeout-links.lua
 -V
 mainfont=DejaVu Sans

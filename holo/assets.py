@@ -8,7 +8,7 @@ from .state import CANONICAL_FCC, DOCX_DEFAULT_REFERENCE, FCC_DIR, TITLE_PAGES_D
 from .ui import info, warn
 
 PDF_ASSETS = ("header.tex", "p10k.theme", "widen-tables.lua", "render-mermaid.lua", "pagebreak.lua", "br.lua",
-              "breakable.lua")
+              "breakable.lua", "strikeout-links.lua")
 DOCX_ASSETS = ("reference.docx", "reference-plain.docx", "stamp_docx_tokens.py", "docx_layout.py",
                "caption_figures.py", "check_links.py", "pagebreak.lua", "render-mermaid.lua", "br.lua",
                "widen-tables.lua", "p10k.theme")
