@@ -231,7 +231,7 @@ Tables always span the full text width, in PDF and DOCX alike: columns without e
 
 ### Long words, URLs and inline code (PDF)
 
-Hyphenation is off in the PDF, so a string wider than its space used to run into the next table column or off the page. Strings longer than 20 characters now get break opportunities after `/ . - _ ? & = :` and the like, and every 10 characters where there is none; TeX still prefers to break between words. Long inline code breaks the same way, its dark background continuing across the line. Headings are left as they are (`.fcc/pdf/breakable.lua`).
+Hyphenation is off in the PDF, so a string wider than its space used to run into the next table column or off the page. Strings longer than 20 characters now get break opportunities after `/ . - _ ? & = :` and the like, and every 10 characters where there is none; TeX still prefers to break between words. Long inline code breaks the same way, its dark background continuing across the line. Headings are left as they are (`.fcc/pdf/breakable.lua`), and so is anything inside `~~strikeout~~`: LaTeX's strikeout cannot take those breaks and the whole PDF failed - a long string struck through can run past the margin instead. A link inside a strikeout, and a strikeout nested in one, typeset too (`.fcc/pdf/strikeout-links.lua`).
 
 ### Characters beyond Latin (PDF)
 
@@ -348,13 +348,14 @@ tests/widen-tables.sh
 tests/breakable.sh
 tests/render-mermaid.sh   # mmdc found and run under a path with spaces and quotes
 tests/runs.sh             # side-by-side runs, a killed run, --no-open
+tests/strikeout-links.sh  # a link (or a strike) inside ~~strikeout~~ no longer aborts the PDF
 ```
 
 ```sh
 tests/run-all.sh          # every file; skips what the host cannot run
 ```
 
-**The golden harness** — `tests/golden.sh` — puts 29 reference conversions
+**The golden harness** — `tests/golden.sh` — puts 30 reference conversions
 (`tests/golden/cases.txt`: PDF and DOCX with every option family, DOCX→Markdown,
 `--concat`, `--fix-links`) through the engine **in the pinned tools image**, and
 compares the results exactly with `tests/golden/expected/`, recorded from this
