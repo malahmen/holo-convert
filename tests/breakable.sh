@@ -57,6 +57,14 @@ check "short inline code stays one \\texttt" has '\texttt{short\_code}'
 latex '# A heading with averyveryverylongwordthatstaysuntouched'
 check "headings are left alone (bookmark and TOC text)" lacks '\hcbreak'
 
+# Inside ~~strikeout~~ (soul's \st) nothing is split: its breaks and boxes
+# abort the PDF there (item 101).
+latex '~~call `some_long_inline_code_identifier_here` and https://registry.example.internal/v2/projects/platform end~~'
+check "inside a strike, long code and a long URL are left whole" lacks '\hc'
+check "  the code is still ordinary \\texttt" has '\texttt{some\_long\_inline\_code\_identifier\_here}'
+latex 'Outside, `some_long_inline_code_identifier_here` still breaks.'
+check "  outside a strike it still breaks" has '\hccodepart'
+
 latex '[the registry](https://registry.example.internal/v2/projects/platform-engineering)'
 check "a link keeps its target whole" has '\href{https://registry.example.internal/v2/projects/platform-engineering}'
 

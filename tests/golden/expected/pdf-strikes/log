@@ -14,17 +14,8 @@
 == Converting Files ==
 [info]  Output directory: ./output
 [info]  Converting strikes.tmp.md → strikes.pdf …
-Error producing PDF.
-! Package soul Error: Reconstruction failed.
-
-See the soul package documentation for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.276 \st{inner} strike}}
-
-[warn]  Failed to convert: strikes.md
+[ok]    strikes.pdf ✓
 [info]  Converting titled.tmp.md → titled.pdf …
 [ok]    titled.pdf ✓
 
-[info]  Conversion complete — 1 succeeded, 1 failed.
+[info]  Conversion complete — 2 succeeded, 0 failed.
