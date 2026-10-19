@@ -1,0 +1,30 @@
+[info]  dependencies OK for md->pdf (pandoc 3.1.11.1).
+[info]  Synced .fcc/pdf/header.tex (bundled).
+[info]  Synced .fcc/pdf/p10k.theme (bundled).
+[info]  Synced .fcc/pdf/widen-tables.lua (bundled).
+[info]  Synced .fcc/pdf/render-mermaid.lua (bundled).
+[info]  Synced .fcc/pdf/pagebreak.lua (bundled).
+[info]  Synced .fcc/pdf/br.lua (bundled).
+[info]  Synced .fcc/pdf/breakable.lua (bundled).
+[info]  Synced .fcc/pdf/strikeout-links.lua (bundled).
+[info]  Using .fcc/pdf/header.tex.
+[ok]    Monospace font: DejaVu Sans Mono → monofont.tex
+[info]  Characters Latin Modern lacks (Greek, Cyrillic, arrows, ✓, box drawing) fall back to DejaVu.
+
+== Converting Files ==
+[info]  Output directory: ./output
+[info]  Converting strikes.tmp.md → strikes.pdf …
+Error producing PDF.
+! Package soul Error: Reconstruction failed.
+
+See the soul package documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.276 \st{inner} strike}}
+
+[warn]  Failed to convert: strikes.md
+[info]  Converting titled.tmp.md → titled.pdf …
+[ok]    titled.pdf ✓
+
+[info]  Conversion complete — 1 succeeded, 1 failed.
