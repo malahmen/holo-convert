@@ -1,0 +1,284 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\ifLuaTeX
+  \usepackage{luacolor}
+  \usepackage[soul]{lua-ul}
+\else
+  \usepackage{soul}
+\fi
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+% ---------------------------------------------------------------------------
+% header.tex — pandoc MD→PDF code block styling
+% Pair with: --highlight-style .fcc/pdf/p10k.theme
+%
+% Approach: tcolorbox owns the block background entirely.
+% fvextra patches Highlighting directly to fix the ␣ bug.
+% ---------------------------------------------------------------------------
+
+% ---------------------------------------------------------------------------
+% Page margins
+% ---------------------------------------------------------------------------
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+
+% ---------------------------------------------------------------------------
+% Hyperlinks — controlled via -V colorlinks=true passed to pandoc.
+% pandoc's template conditionally sets colorlinks/hidelinks based on that
+% variable — no hyperref config needed here.
+% ---------------------------------------------------------------------------
+
+% ---------------------------------------------------------------------------
+% Images — required for \includegraphics in title page template
+% ---------------------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{fvextra}
+\usepackage{etoolbox}
+\usepackage[most]{tcolorbox}
+
+% ---------------------------------------------------------------------------
+% p10k colours (xterm-256 exact hex)
+% ---------------------------------------------------------------------------
+\definecolor{termbg} {HTML}{262626}
+\definecolor{termfg} {HTML}{bcbcbc}
+
+% ---------------------------------------------------------------------------
+% Fix ␣ bug: patch the Highlighting environment that pandoc defines via
+% \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=...}
+% fvextra's \fvset doesn't reach it because the options on DefineVerbatimEnvironment
+% take precedence. We redefine it after \begin{document} to inject breaklines.
+% ---------------------------------------------------------------------------
+\AtBeginDocument{%
+  % Redefine Highlighting to add fvextra breaklines + correct foreground colour.
+  % Preserve the commandchars option pandoc requires for token coloring.
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
+    commandchars=\\\{\},%
+    breaklines=true,%
+    breakanywhere=false,%
+    breaksymbolleft={},%
+    fontsize=\small,%
+  }%
+  % Suppress hyphenation at font level — prevents TeX inserting hyphens on line breaks.
+  \BeforeBeginEnvironment{Verbatim}{\hyphenchar\font=-1\relax}%
+  \AfterEndEnvironment{Verbatim}{\hyphenchar\font=`\-\relax}%
+}
+
+% ---------------------------------------------------------------------------
+% Redefine Shaded using tcolorbox — completely independent of framed/snugshade.
+% \AtBeginDocument so it fires after pandoc defines Shaded at line ~47.
+% ---------------------------------------------------------------------------
+\AtBeginDocument{%
+  \ifdef{\Shaded}{}{\newenvironment{Shaded}{}{}}%
+  \renewenvironment{Shaded}{%
+    \begin{tcolorbox}[%
+      enhanced,%
+      arc=3pt,%
+      boxrule=0.5pt,%
+      colback=termbg,%
+      colframe=termbg!60!black,%
+      coltext=termfg,%
+      left=6pt, right=6pt, top=4pt, bottom=4pt,%
+      before skip=8pt, after skip=8pt,%
+      fontupper=\color{termfg}\small,%
+    ]%
+  }{%
+    \end{tcolorbox}%
+  }%
+}
+
+% ---------------------------------------------------------------------------
+% Inline code styling
+% Use \scalerel to allow the text to shrink when inside narrow table columns.
+% \texttt globally uses \footnotesize so long identifiers fit in pandoc's
+% hardcoded longtable column proportions.
+% ---------------------------------------------------------------------------
+\usepackage{relsize}
+\let\oldtexttt\texttt
+\renewcommand{\texttt}[1]{%
+  \colorbox{termbg}{{\ttfamily\relsize{-1}\color{termfg}#1}}%
+}
+
+% ---------------------------------------------------------------------------
+% Long strings - see breakable.lua, which emits these two.
+% \hcbreak: a break opportunity after a separator (/ . - _ ...) in a long
+% word, URL or identifier. \hcsplit: one inside a run with no separator - a
+% higher penalty, so TeX takes it only when nothing better fits. Both cost
+% more than a space, so TeX still prefers to break between words.
+% \hccodepart{left}{right}{text}: one piece of a long inline code span, styled
+% as \texttt above. A piece that continues on a side gets \kern-\fboxsep there,
+% so its box has no padding on that side; the \vphantom gives every piece the
+% same height and depth, so the pieces join without a step.
+% xurl: \url may break at any character.
+% ---------------------------------------------------------------------------
+\newcommand{\hcbreak}{\penalty50\relax}
+\newcommand{\hcsplit}{\penalty300\relax}
+\newcommand{\hccodepart}[3]{%
+  \colorbox{termbg}{#1{\ttfamily\relsize{-1}\color{termfg}\vphantom{Xgjpqy\textunderscore}#3}#2}%
+}
+\usepackage{xurl}
+
+% ---------------------------------------------------------------------------
+% Suppress all hyphenation in prose.
+% \pretolerance=10000 makes TeX accept slightly loose lines before trying
+% hyphenation. Combined with \hyphenpenalty=10000 it effectively disables
+% hyphenation without breaking the layout engine entirely.
+% ---------------------------------------------------------------------------
+\pretolerance=10000
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+
+% ---------------------------------------------------------------------------
+% Table row colours — alternating light grey / white body rows, medium grey
+% header. Applies to all longtables pandoc generates.
+%
+% \rowcolors{<start row>}{<odd colour>}{<even colour>}
+% Start row 1 so the header row is row 0 (styled separately via \rowcolor).
+% \arrayrulecolor keeps the rule lines visible against the light background.
+% ---------------------------------------------------------------------------
+\usepackage{colortbl}
+\definecolor{tableheader}{HTML}{cccccc}
+\definecolor{tablerowodd}{HTML}{f5f5f5}
+\definecolor{tableroweven}{HTML}{ffffff}
+
+\AtBeginDocument{%
+  \rowcolors{2}{tablerowodd}{tableroweven}%
+}
+
+% Style the header row — pandoc wraps it in \endfirsthead / \endhead blocks.
+% Redefine \toprule and \midrule to inject \rowcolor on the header row.
+% \arrayrulecolor darkens the rule lines so they remain visible on light bg.
+\arrayrulecolor{gray!50}
+
+% Colour the header row by patching longtable's first-head block.
+% \pretocmd injects \rowcolor{tableheader} immediately after \toprule,
+% which is where pandoc places the header row.
+\usepackage{longtable}
+\AtBeginDocument{%
+  \pretocmd{\toprule}{\rowcolor{tableheader}}{}{}%
+}
+\ifdefined\setmonofont
+  \setmonofont{DejaVu Sans Mono}
+\fi
+% fallback.tex - written by holo-convert for each run (fonts.py).
+% Characters Latin Modern has no glyph for used to vanish from the PDF, with
+% only a warning per character from pandoc. XeTeX's character classes switch
+% to DejaVu for exactly those Unicode blocks and back after them. Code (the
+% monospace family) is left alone: its font has these, and ASCII art there
+% must keep its fixed width. No groups, so a brace between the two ends of a
+% run cannot unbalance anything.
+\ifdefined\XeTeXinterchartoks
+\newfontfamily\hcfallbackletters{DejaVu Serif}
+\newfontfamily\hcfallbacksymbols{DejaVu Sans}
+\newXeTeXintercharclass\hcclassletters
+\newXeTeXintercharclass\hcclasssymbols
+\makeatletter
+\def\hc@range#1#2#3{\count@=#1\relax
+  \loop\XeTeXcharclass\count@=#3\relax\ifnum\count@<#2\advance\count@\@ne\repeat}
+\hc@range{"0370}{"03FF}{\hcclassletters}
+\hc@range{"1F00}{"1FFF}{\hcclassletters}
+\hc@range{"0400}{"052F}{\hcclassletters}
+\hc@range{"2196}{"21FF}{\hcclasssymbols}
+\hc@range{"2200}{"22FF}{\hcclasssymbols}
+\hc@range{"2300}{"23FF}{\hcclasssymbols}
+\hc@range{"2460}{"24FF}{\hcclasssymbols}
+\hc@range{"2500}{"257F}{\hcclasssymbols}
+\hc@range{"2580}{"259F}{\hcclasssymbols}
+\hc@range{"25A0}{"25FF}{\hcclasssymbols}
+\hc@range{"2600}{"26FF}{\hcclasssymbols}
+\hc@range{"2700}{"27BF}{\hcclasssymbols}
+\hc@range{"27F0}{"27FF}{\hcclasssymbols}
+\hc@range{"2900}{"297F}{\hcclasssymbols}
+\hc@range{"2980}{"29FF}{\hcclasssymbols}
+\hc@range{"2A00}{"2AFF}{\hcclasssymbols}
+\hc@range{"2B00}{"2BFF}{\hcclasssymbols}
+\let\hc@close\relax
+\def\hc@restore{\fontfamily{\hc@saved}\selectfont\let\hc@close\relax}
+\def\hc@open#1{\hc@close
+  \edef\hc@a{\f@family}\edef\hc@b{\ttdefault}%
+  \ifx\hc@a\hc@b\else\let\hc@saved\hc@a\let\hc@close\hc@restore#1\fi}
+\XeTeXinterchartoks 0 \hcclassletters = {\hc@open\hcfallbackletters}
+\XeTeXinterchartoks 4095 \hcclassletters = {\hc@open\hcfallbackletters}
+\XeTeXinterchartoks \hcclasssymbols \hcclassletters = {\hc@open\hcfallbackletters}
+\XeTeXinterchartoks 0 \hcclasssymbols = {\hc@open\hcfallbacksymbols}
+\XeTeXinterchartoks 4095 \hcclasssymbols = {\hc@open\hcfallbacksymbols}
+\XeTeXinterchartoks \hcclassletters \hcclasssymbols = {\hc@open\hcfallbacksymbols}
+\XeTeXinterchartoks \hcclassletters 0 = {\hc@close}
+\XeTeXinterchartoks \hcclassletters 4095 = {\hc@close}
+\XeTeXinterchartoks \hcclasssymbols 0 = {\hc@close}
+\XeTeXinterchartoks \hcclasssymbols 4095 = {\hc@close}
+\makeatother
+\XeTeXinterchartokenstate=1
+\fi
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={blue},
+  urlcolor={blue},
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\section{Struck through}\label{struck-through}
+
+A struck link, as Kamino's reports have them: \st{see
+}\href{titled.md}{\st{the older report}}\st{ instead}.
+
+A strike inside a struck link: \st{a }\href{titled.md}{\st{link with
+inner strike}}\st{ end}.
+
+Long code struck through: \st{call
+\mbox{\texttt{some\_long\_inline\_code\_identifier\_here}} end}.
+
+A long URL struck through: \st{see
+https://registry.example.internal/v2/projects/platform-engineering end}.
+
+\end{document}

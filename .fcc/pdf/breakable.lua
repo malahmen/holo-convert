@@ -16,6 +16,10 @@
 --
 -- Headings are left alone: their text is also the PDF bookmark and the TOC
 -- entry, where raw LaTeX does not belong, and a heading is rarely one word.
+-- So is anything inside ~~strikeout~~: pandoc writes it as soul's \st, which
+-- rebuilds its argument token by token and fails the whole PDF ("Reconstruction
+-- failed", "Missing number") on these breaks and boxes. A long string struck
+-- through can overflow; it cannot abort the document (Kamino item 101).
 
 if not FORMAT:match("latex") then
   return {}
@@ -83,7 +87,14 @@ local function split_code(el)
   return out
 end
 
-local inline_filter = { Str = split_str, Code = split_code }
+-- Top-down, so a Strikeout is met before its contents and can stop the walk
+-- there (returning false as the second value skips its children).
+local inline_filter = {
+  traverse = "topdown",
+  Strikeout = function(el) return el, false end,
+  Str = split_str,
+  Code = split_code,
+}
 
 local function walk_inlines(el)
   return el:walk(inline_filter)

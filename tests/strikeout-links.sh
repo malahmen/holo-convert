@@ -44,6 +44,12 @@ check "  and still bold" has '\textbf{'
 latex '~~struck, no link at all~~' "$FILTER"
 check "a span with no link is left exactly as pandoc writes it" has '\st{struck, no link at all}'
 
+# A strike inside the struck link: soul cannot nest \st (item 101). Every \st
+# must close before the next one opens.
+latex '~~a [link with ~~inner~~ strike](q.md) end~~' "$FILTER"
+check "a strike inside a struck link is dissolved: no \\st inside \\st" bash -c '! grep -qE "\\\\st\\{[^}]*\\\\st\\{" "$1"' _ "$T/out"
+check "  the link's text is struck once, whole" has '\href{q.md}{\st{link with inner strike}}'
+
 latex 'plain [link](x.md) text' "$FILTER"
 check "a link outside any strike is untouched" has '\href{x.md}{link}'
 

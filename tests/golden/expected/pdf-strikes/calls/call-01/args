@@ -1,0 +1,5 @@
+<WORK>/output/.holo-run-<RUN>/strikes.tmp.md
+--from
+markdown+gfm_auto_identifiers
+--to
+json
