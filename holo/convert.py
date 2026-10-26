@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 
 from . import assets, sh
 from .deps import highlight_theme_arg
@@ -47,16 +48,28 @@ def strip_source_ext(name: str) -> str:
     return name
 
 
-def resolve_output_path(source_path: str, out_dir: str, ext: str):
+def _name_key(name: str) -> str:
+    """An output name as a case-insensitive disk sees it (macOS, Windows):
+    Notes.docx and notes.docx are one file there."""
+    return unicodedata.normalize("NFC", name).casefold()
+
+
+def resolve_output_path(source_path: str, out_dir: str, ext: str) -> bool:
     """<out>/<base>.<ext>, or a path-derived name when another input of this
-    run shares the base name. A file already in the output folder is not a
-    collision: re-running overwrites it."""
+    run shares the base name (in any case). A file already in the output
+    folder is not a collision: re-running overwrites it.
+
+    An output another input of this run has already been given is never
+    taken again: a path-derived a_notes is also a flat a_notes.md's name, and
+    one silently replaced the other while the run reported success (Kamino
+    item 191). The later input fails instead - argument order decides, so the
+    same command always keeps the same file - and the run exits non-zero."""
     base = strip_source_ext(sh.basename(source_path))
     dupes = 0
     for line in S.selected_files:
         if not line:
             continue
-        if strip_source_ext(line.rsplit("/", 1)[-1]) == base:
+        if _name_key(strip_source_ext(line.rsplit("/", 1)[-1])) == _name_key(base):
             dupes += 1
     if dupes > 1:
         flat = strip_source_ext(source_path).replace("/", "_")
@@ -64,8 +77,16 @@ def resolve_output_path(source_path: str, out_dir: str, ext: str):
         S.output_file = f"{out_dir}/{flat}.{ext}"
     else:
         S.output_file = f"{out_dir}/{base}.{ext}"
+    key = _name_key(sh.basename(S.output_file))
+    owner = S.claimed_outputs.get(key)
+    if owner is not None:
+        warn(f"{source_path}: its output {S.output_file} is {owner}'s in this run — not overwriting it, "
+             f"{source_path} is not converted. Rename one of them, or convert them in separate runs.")
+        return False
+    S.claimed_outputs[key] = source_path
     if os.path.isfile(S.output_file):
         enote(f"Output exists — overwriting: {S.output_file}")
+    return True
 
 
 def resolve_resource_path(src: str) -> str:
@@ -117,7 +138,8 @@ def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
     if not S.pdf_engine:
         warn(f"PDF_ENGINE is not set — skipping: {input_file}")
         return False
-    resolve_output_path(name_source, S.output_dir, "pdf")
+    if not resolve_output_path(name_source, S.output_dir, "pdf"):
+        return False
     output_file = S.output_file
     res_path = resolve_resource_path(name_source)
     args = [input_file, "-o", output_file, f"--from={MD_INPUT_FORMAT}", f"--pdf-engine={S.pdf_engine}"]
@@ -154,7 +176,8 @@ def convert_md_to_pdf(input_file: str, name_source: str = "") -> bool:
 
 def convert_md_to_docx(input_file: str, name_source: str = "") -> bool:
     name_source = name_source or input_file
-    resolve_output_path(name_source, S.output_dir, "docx")
+    if not resolve_output_path(name_source, S.output_dir, "docx"):
+        return False
     output_file = S.output_file
     args = [input_file, "-o", output_file, f"--from={MD_INPUT_FORMAT}", "--to=docx"]
     res_path = resolve_resource_path(name_source)
@@ -193,7 +216,8 @@ def convert_md_to_docx(input_file: str, name_source: str = "") -> bool:
 
 
 def convert_docx_to_md(input_file: str) -> bool:
-    resolve_output_path(input_file, S.output_dir, "md")
+    if not resolve_output_path(input_file, S.output_dir, "md"):
+        return False
     output_file = S.output_file
     media_rel = f"media/{sh.basename(output_file, '.md')}"
     media_dir = f"{S.output_dir}/{media_rel}"

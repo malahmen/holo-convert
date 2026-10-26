@@ -123,6 +123,14 @@ check "  and says so" grep -q "1 failed" "$T/names.log"
 check "  the first input keeps that output, nothing overwrote it" bash -c "$(declare -f docx_text holds); W='$W'; holds a_notes.docx MARK-a-dir && ! holds a_notes.docx MARK-flat"
 check "  the others are still converted" bash -c "$(declare -f docx_text holds); W='$W'; holds b_notes.docx MARK-b-dir"
 
+# The same with the flat file's name in another case: one file on a
+# case-insensitive disk, so refused on every disk (the same command must not
+# pass on Linux and lose a file on macOS).
+printf 'MARK-flat-upper\n' > "$W/a_Notes.md"
+names a/notes.md b/notes.md a_Notes.md
+check "  also when the two names differ only in case" [ "$?" -ne 0 ]
+rm "$W/a_Notes.md"
+
 names c/Notes.md d/notes.md
 check "base names that differ only in case both succeed" [ "$?" -eq 0 ]
 check "  in two outputs, also on a case-insensitive disk" bash -c "$(declare -f docx_text holds); W='$W'; holds c_Notes.docx MARK-c-upper && holds d_notes.docx MARK-d-lower"
