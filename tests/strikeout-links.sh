@@ -79,6 +79,20 @@ check "  inside a struck link as well" has_math '\href{g.md}{\st{\mbox{αβ} lin
 latex 'no strike αβ $x$ ~~café~~' "$FILTER"
 check "outside a strike, and Latin-1 inside one, nothing is boxed" bash -c '! grep -qF "\\mbox" "$1"' _ "$T/out"
 
+# The filter's copy of fallback.tex's Unicode ranges must match holo/fonts.py.
+same_ranges() {
+    python3 - "$HERE" "$FILTER" <<'PY'
+import re, sys
+sys.path.insert(0, sys.argv[1])
+from holo.fonts import FALLBACK_LETTERS, FALLBACK_SYMBOLS
+lua = open(sys.argv[2], encoding="utf-8").read()
+table = lua[lua.index("local FALLBACK = {"):lua.index("\n}", lua.index("local FALLBACK = {"))]
+got = [(int(a, 16), int(b, 16)) for a, b in re.findall(r"\{ 0x([0-9A-Fa-f]+), 0x([0-9A-Fa-f]+) \}", table)]
+sys.exit(0 if got == list(FALLBACK_LETTERS + FALLBACK_SYMBOLS) else 1)
+PY
+}
+check "the filter's fallback ranges are holo/fonts.py's" same_ranges
+
 latex 'plain [link](x.md) text' "$FILTER"
 check "a link outside any strike is untouched" has '\href{x.md}{link}'
 

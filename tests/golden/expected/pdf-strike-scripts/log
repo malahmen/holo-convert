@@ -14,17 +14,8 @@
 == Converting Files ==
 [info]  Output directory: ./output
 [info]  Converting strike-scripts.tmp.md → strike-scripts.pdf …
-Error producing PDF.
-! Package soul Error: Reconstruction failed.
-
-See the soul package documentation for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.273 ...a strike: \st{the αβγ δ constants, Ωmega}
-
-[warn]  Failed to convert: strike-scripts.md
+[ok]    strike-scripts.pdf ✓
 [info]  Converting titled.tmp.md → titled.pdf …
 [ok]    titled.pdf ✓
 
-[info]  Conversion complete — 1 succeeded, 1 failed.
+[info]  Conversion complete — 2 succeeded, 0 failed.
