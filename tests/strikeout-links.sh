@@ -25,6 +25,8 @@ check() {
 # latex <markdown> [filter]: the LaTeX body pandoc writes, into $T/out.
 latex() { printf '%s\n' "$1" | pandoc --from=markdown --to=latex ${2:+--lua-filter="$2"} > "$T/out"; }
 has() { grep -qF -- "$1" "$T/out"; }
+# The same, with inline math as either pandoc writes it: $x$ (3.9) or \(x\) (3.1).
+has_math() { has "${1//@/\$}" || has "$(sed -e 's/@/\\(/' -e 's/@/\\)/' <<< "$1")"; }
 # Does some \st{...} contain an \href before it closes? (one line is enough here)
 href_in_st() { grep -qE '\\st\{[^}]*\\href' "$T/out"; }
 
@@ -49,6 +51,33 @@ check "a span with no link is left exactly as pandoc writes it" has '\st{struck,
 latex '~~a [link with ~~inner~~ strike](q.md) end~~' "$FILTER"
 check "a strike inside a struck link is dissolved: no \\st inside \\st" bash -c '! grep -qE "\\\\st\\{[^}]*\\\\st\\{" "$1"' _ "$T/out"
 check "  the link's text is struck once, whole" has '\href{q.md}{\st{link with inner strike}}'
+
+# A strike inside a run of plain text (no link anywhere): bold inside the
+# strike holding another strike. soul cannot nest \st (item 205).
+latex '~~a **b ~~c~~ d** e~~' "$FILTER"
+check "a strike inside bold inside a strike is dissolved: no \\st inside \\st" bash -c '! grep -qE "\\\\st\\{[^}]*\\\\st\\{" "$1"' _ "$T/out"
+check "  the whole run is struck once" has '\st{a \textbf{b c d} e}'
+
+# A strike directly in the run of a struck span with a link
+# (strikeout-links.lua's run branch). Markdown cannot write that nesting, so
+# the document is given as pandoc's native AST.
+nat='[Para [Strikeout [Str "a",Space,Strikeout [Str "b"],Space,Link ("",[],[]) [Str "l"] ("x.md",""),Space,Str "c"]]]'
+printf '%s\n' "$nat" | pandoc --from=native --to=latex --lua-filter="$FILTER" > "$T/out"
+check "a strike directly inside a struck run is dissolved into it" has '\st{a b }\href{x.md}{\st{l}}\st{ c}'
+
+# Inline math and characters fallback.tex sets in DejaVu (Greek here): soul
+# takes them apart and fails ("Extra }, or forgotten $"; "Reconstruction
+# failed"). Each goes into an \mbox, which soul strikes through whole.
+latex '~~math $x^2$ end~~' "$FILTER"
+check "inline math inside a strike is boxed" has_math '\st{math \mbox{@x^2@} end}'
+latex '~~greek αβγ δ end~~' "$FILTER"
+check "Greek inside a strike is boxed, each run on its own" has '\st{greek \mbox{αβγ} \mbox{δ} end}'
+latex '~~mixed Ωmega and ✓ tick~~' "$FILTER"
+check "  only the fallback characters of a word, and symbols too" has '\st{mixed \mbox{Ω}mega and \mbox{✓} tick}'
+latex '~~see [αβ link](g.md) $y$~~' "$FILTER"
+check "  inside a struck link as well" has_math '\href{g.md}{\st{\mbox{αβ} link}}\st{ \mbox{@y@}}'
+latex 'no strike αβ $x$ ~~café~~' "$FILTER"
+check "outside a strike, and Latin-1 inside one, nothing is boxed" bash -c '! grep -qF "\\mbox" "$1"' _ "$T/out"
 
 latex 'plain [link](x.md) text' "$FILTER"
 check "a link outside any strike is untouched" has '\href{x.md}{link}'
