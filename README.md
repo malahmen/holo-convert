@@ -231,7 +231,7 @@ Tables always span the full text width, in PDF and DOCX alike: columns without e
 
 ### Long words, URLs and inline code (PDF)
 
-Hyphenation is off in the PDF, so a string wider than its space used to run into the next table column or off the page. Strings longer than 20 characters now get break opportunities after `/ . - _ ? & = :` and the like, and every 10 characters where there is none; TeX still prefers to break between words. Long inline code breaks the same way, its dark background continuing across the line. Headings are left as they are (`.fcc/pdf/breakable.lua`), and so is anything inside `~~strikeout~~`: LaTeX's strikeout cannot take those breaks and the whole PDF failed - a long string struck through can run past the margin instead. A link inside a strikeout, and a strikeout nested in one, typeset too (`.fcc/pdf/strikeout-links.lua`).
+Hyphenation is off in the PDF, so a string wider than its space used to run into the next table column or off the page. Strings longer than 20 characters now get break opportunities after `/ . - _ ? & = :` and the like, and every 10 characters where there is none; TeX still prefers to break between words. Long inline code breaks the same way, its dark background continuing across the line. Headings are left as they are (`.fcc/pdf/breakable.lua`), and so is anything inside `~~strikeout~~`: LaTeX's strikeout cannot take those breaks and the whole PDF failed - a long string struck through can run past the margin instead. A link inside a strikeout, a strikeout nested in one, inline math, and Greek, Cyrillic or symbols set in the DejaVu fallback typeset too - math and those characters are boxed and struck through whole (`.fcc/pdf/strikeout-links.lua`).
 
 ### Characters beyond Latin (PDF)
 
@@ -281,6 +281,7 @@ It becomes a real page break in every output: `\newpage` in LaTeX/PDF, a Word pa
 - On every run the bundled `.fcc/pdf/*` and `.fcc/docx/*` assets _(filters, code theme, reference docs, post-processors)_ are synced into a working `./.fcc/` in the current directory, **overwriting** local copies so a stale filter never lingers. `monofont.tex` and `fallback.tex` are regenerated there for each `md→pdf` run.
 - Only `./.fcc/docx/config` and `./.fcc/title-pages/*` are yours to edit per project: they are never overwritten (the bundled `default.yaml`/`default.md` title page is seeded only when missing).
 - Output is written to `./output/` (or `-o DIR`). Both `.fcc/` and `output/` are runtime artifacts, keep them out of version control.
+- Each input gets its own output, `<name>.<ext>`. Inputs that share a name - in any case, since `Notes` and `notes` are one file on macOS - get path-derived names instead (`a/notes.md` → `a_notes.docx`, `b/notes.md` → `b_notes.docx`). Two inputs are never written to one output in a run: when a name is still taken (`a_notes.md` next to those two), the later input is not converted, the run says which input has that name and exits non-zero. An output left by an earlier run is overwritten.
 - Working copies (`<name>.tmp.md`, `_concat.tmp.md`) live in a folder of the run's own inside the output folder, `.holo-run-XXXXXX/`, removed when the run ends - also on Ctrl-C and `SIGTERM`. Several runs into one output folder therefore no longer overwrite each other's working copies (their outputs still share the folder: give them different names). The `.fcc/` files every run regenerates are replaced atomically.
 - DOCX → Markdown: images go to `output/media/<name>/`, and the links in the `.md` are relative to it (`media/<name>/...`), so they resolve from the `.md`'s own folder.
 
@@ -348,14 +349,14 @@ tests/widen-tables.sh
 tests/breakable.sh
 tests/render-mermaid.sh   # mmdc found and run under a path with spaces and quotes
 tests/runs.sh             # side-by-side runs, a killed run, --no-open
-tests/strikeout-links.sh  # a link (or a strike) inside ~~strikeout~~ no longer aborts the PDF
+tests/strikeout-links.sh  # a link, a strike, math or Greek inside ~~strikeout~~ no longer aborts the PDF
 ```
 
 ```sh
 tests/run-all.sh          # every file; skips what the host cannot run
 ```
 
-**The golden harness** — `tests/golden.sh` — puts 30 reference conversions
+**The golden harness** — `tests/golden.sh` — puts 31 reference conversions
 (`tests/golden/cases.txt`: PDF and DOCX with every option family, DOCX→Markdown,
 `--concat`, `--fix-links`) through the engine **in the pinned tools image**, and
 compares the results exactly with `tests/golden/expected/`, recorded from this

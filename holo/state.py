@@ -68,6 +68,8 @@ class State:
         self.docx_mono = ""
         self.docx_reference_doc = ""
         self.output_file = ""
+        # Output names given out in this run (case-folded) -> the input that has it.
+        self.claimed_outputs = {}
 
     def is_latex_engine(self) -> bool:
         return self.pdf_engine in ("xelatex", "lualatex", "pdflatex")
