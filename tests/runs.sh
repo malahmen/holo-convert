@@ -96,6 +96,37 @@ wait "$engine" 2>/dev/null
 pkill -f "sleep 60" 2>/dev/null
 check "  SIGTERM removes it" no_run_dir "$W/output"
 
+# --- one output per input -------------------------------------------------------------
+# Inputs that share a base name get path-derived names (a/notes.md ->
+# a_notes.docx). That name could itself be another input's (a_notes.md), and
+# the base names were compared case-sensitively (a/Notes.md and b/notes.md
+# both wrote Notes.docx on a case-insensitive disk): one output silently
+# replaced another and the run said every input succeeded (Kamino item 191).
+W="$T/names"; mkdir -p "$W/a" "$W/b" "$W/c" "$W/d"
+printf 'MARK-a-dir\n' > "$W/a/notes.md"
+printf 'MARK-b-dir\n' > "$W/b/notes.md"
+printf 'MARK-flat\n'  > "$W/a_notes.md"
+printf 'MARK-c-upper\n' > "$W/c/Notes.md"
+printf 'MARK-d-lower\n' > "$W/d/notes.md"
+names() { (cd "$W" && rm -rf output && "$HC" --from md --to docx --reference none --no-open "$@" > "$T/names.log" 2>&1); }
+holds() { [[ "$(docx_text "$W/output/$1")" == *"$2"* ]]; }
+
+names a/notes.md b/notes.md
+check "two inputs with one base name both succeed" [ "$?" -eq 0 ]
+check "  each in its own path-derived output" bash -c '[[ -f "$1/a_notes.docx" && -f "$1/b_notes.docx" ]]' _ "$W/output"
+check "  holding its own text" bash -c "$(declare -f docx_text holds); W='$W'; holds a_notes.docx MARK-a-dir && holds b_notes.docx MARK-b-dir"
+
+names a/notes.md b/notes.md a_notes.md
+rc=$?
+check "a path-derived name that is another input's output: the run fails" [ "$rc" -ne 0 ]
+check "  and says so" grep -q "1 failed" "$T/names.log"
+check "  the first input keeps that output, nothing overwrote it" bash -c "$(declare -f docx_text holds); W='$W'; holds a_notes.docx MARK-a-dir && ! holds a_notes.docx MARK-flat"
+check "  the others are still converted" bash -c "$(declare -f docx_text holds); W='$W'; holds b_notes.docx MARK-b-dir"
+
+names c/Notes.md d/notes.md
+check "base names that differ only in case both succeed" [ "$?" -eq 0 ]
+check "  in two outputs, also on a case-insensitive disk" bash -c "$(declare -f docx_text holds); W='$W'; holds c_Notes.docx MARK-c-upper && holds d_notes.docx MARK-d-lower"
+
 # --- --no-open ------------------------------------------------------------------------
 W="$T/open"; mkdir -p "$W"
 printf '# Doc\n\ntext\n' > "$W/doc.md"
